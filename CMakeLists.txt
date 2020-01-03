@@ -9,7 +9,8 @@ set(TREES trees/abstract_tree.cpp
         trees/rb_tree.cpp
         trees/splay_tree.cpp)
 
-set(TESTS tests/test_framework.cpp)
+set(TESTS #tests/test_framework.cpp
+        tests/full_test_set.cpp)
 
 add_library(trees ${TREES})
 add_library(tests ${TESTS})

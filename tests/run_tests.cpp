@@ -1,7 +1,5 @@
 #include <iostream>
 
-#include "test_framework.cpp"
-
 #include "../trees/cartesian_tree.cpp"
 
 using std::cout;

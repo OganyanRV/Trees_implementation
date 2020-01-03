@@ -5,25 +5,21 @@
 #include <unordered_map>
 #include <vector>
 
-class ITest {
-public:
-    virtual void SetUp() = 0;
-    virtual void TearDown() = 0;
-    virtual void Run() = 0;
-    virtual ~ITest() = default;
-};
+#include "../trees/abstract_tree.cpp"
 
+template <class T>
 class IFactory {
 public:
-    virtual std::unique_ptr<ITest> Produce() = 0;
+    virtual std::unique_ptr<ITree<T>> Produce() = 0;
     virtual ~IFactory() = default;
 };
 
-template <class TestClass>
-class TestFactory : public IFactory {
+template <class TreeType, class T>
+class TreeFactory : public IFactory<T> {
 public:
-    std::unique_ptr<ITest> Produce() override {
-        return std::make_unique<TestClass>();
+    std::unique_ptr<ITree<T>> Produce() override {
+        ITree<T> *ptr = new TreeType<T>();
+        return std::make_unique<TreeType<T>>();
     }
 };
 
