@@ -1,0 +1,21 @@
+#image: debian:stable-slim
+#image: gcc:latest
+image: alpine:latest
+
+build:
+    stage: build
+    before_script:
+        #- apt-get update --yes
+        #- apt-get install --yes cmake
+        #- apt-get install --yes g++
+        
+        - apk update
+        - apk add cmake
+        - apk add make gcc g++ libc-dev linux-headers
+    script:
+        - mkdir build
+        - cd build
+        - cmake ../
+        - make
+        - ./run_tests
+        - ./unit_tests_for_set
