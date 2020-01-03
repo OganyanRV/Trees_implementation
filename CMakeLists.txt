@@ -9,11 +9,10 @@ set(TREES trees/abstract_tree.cpp
         trees/rb_tree.cpp
         trees/splay_tree.cpp)
 
-set(TESTS #tests/test_framework.cpp
-        tests/full_test_set.cpp)
+set(TESTS tests/full_test_set.cpp)
 
 add_library(trees ${TREES})
 add_library(tests ${TESTS})
 
 add_executable(run_tests tests/run_tests.cpp)
-add_executable(unit_tests_for_set tests/unit_tests_for_set.cpp)
+#add_executable(unit_tests_for_set tests/unit_tests_for_set.cpp)
