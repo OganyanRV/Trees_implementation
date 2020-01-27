@@ -18,8 +18,16 @@ protected:
     virtual std::shared_ptr<ITreeItImpl> Begin() const = 0;
     virtual std::shared_ptr<ITreeItImpl> End() const = 0;
 
-    virtual std::shared_ptr<ITreeItImpl> find_impl(const T& value) const = 0;
-    virtual std::shared_ptr<ITreeItImpl> lower_bound_impl(const T& value) const = 0;
+    [[nodiscard]] virtual size_t Size() const = 0;
+    [[nodiscard]] virtual bool Empty() const = 0;
+
+    virtual std::shared_ptr<ITreeItImpl> Find(const T& value) const = 0;
+    virtual std::shared_ptr<ITreeItImpl> LowerBound(const T& value) const = 0;
+
+    virtual void Insert(const T& value) = 0;
+    virtual void Erase(const T& value) = 0;
+
+    virtual void Clear() = 0;
 
 public:
     class iterator {
@@ -77,17 +85,27 @@ public:
 
     virtual ~ITree() = default;
 
-    [[nodiscard]] virtual size_t size() const = 0;
-    [[nodiscard]] virtual bool empty() const = 0;
+    [[nodiscard]] size_t size() const {
+        return Size();
+    }
+    [[nodiscard]] bool empty() const {
+        return Empty();
+    }
     iterator find(const T& value) const {
-        return iterator(find_impl(value));
+        return iterator(Find(value));
     }
     iterator lower_bound(const T& value) const {
-        return iterator(lower_bound_impl(value));
+        return iterator(LowerBound(value));
     }
 
-    virtual void insert(const T& value) = 0;
-    virtual void erase(const T& value) = 0;
+    void insert(const T& value) {
+        return Insert(value);
+    }
+    void erase(const T& value) {
+        return Erase(value);
+    }
 
-    virtual void clear() = 0;
+    void clear() {
+        Clear();
+    }
 };

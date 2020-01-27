@@ -2,8 +2,14 @@
 #include <exception>
 #include <memory>
 #include <random>
+#include <optional>
 
 #include "abstract_tree.cpp"
+
+template <class T>
+bool operator<(const std::optional<T>& lhs, const std::optional<T>& rhs) {
+    return (lhs && (!rhs || *lhs < *rhs));
+}
 
 template <class T>
 class CartesianTree : public ITree<T> {
@@ -34,20 +40,14 @@ public:
         Node() {
             left_ = nullptr;
             right_ = nullptr;
-            parent_ = nullptr;
-        }
-        explicit Node(bool end) {
-            left_ = nullptr;
-            right_ = nullptr;
-            parent_ = nullptr;
-            if (end) {
-                priority_ = 0;
-            }
+            parent_ = std::weak_ptr<Node>();
+            priority_ = Random::Next();
+            value_ = std::nullopt;
         }
         explicit Node(const T& value) : value_(value) {
             left_ = nullptr;
             right_ = nullptr;
-            parent_ = nullptr;
+            parent_ = std::weak_ptr<Node>();
             priority_ = Random::Next();
         }
         Node(const Node& other) : value_(other.value_) {
@@ -59,55 +59,40 @@ public:
 
         std::shared_ptr<Node> left_;
         std::shared_ptr<Node> right_;
-        std::shared_ptr<Node> parent_;
-        T value_;
+        std::weak_ptr<Node> parent_;
         uint32_t priority_;
+        std::optional<T> value_;
     };
 
     CartesianTree() {
-        begin_ = nullptr;
-        last_ = nullptr;
-        root_ = nullptr;
+        root_ = std::make_shared<Node>();
+        begin_ = root_;
+        end_ = root_;
         size_ = 0;
     }
 
     template <class InitIterator>
-    CartesianTree(InitIterator begin, InitIterator end) {
-        begin_ = nullptr;
-        last_ = nullptr;
-        root_ = nullptr;
-        size_ = 0;
+    CartesianTree(InitIterator begin, InitIterator end) : CartesianTree() {
         for (InitIterator cur(begin); cur != end; ++cur) {
-            insert(*cur);
+            Insert(*cur);
         }
     }
-    CartesianTree(std::initializer_list<T> list) {
-        begin_ = nullptr;
-        last_ = nullptr;
-        root_ = nullptr;
-        size_ = 0;
+    CartesianTree(std::initializer_list<T> list) : CartesianTree() {
         for (const T& value : list) {
-            insert(value);
+            Insert(value);
         }
     }
 
-    CartesianTree(const CartesianTree& other) {
-        begin_ = nullptr;
-        last_ = nullptr;
-        root_ = nullptr;
-        size_ = 0;
+    CartesianTree(const CartesianTree& other) : CartesianTree() {
         for (const T& value : other) {
-            insert(value);
+            Insert(value);
         }
     }
-    CartesianTree(CartesianTree&& other) noexcept {
-        begin_ = nullptr;
-        last_ = nullptr;
-        root_ = nullptr;
-        size_ = 0;
-        for (T&& value : other) {
-            insert(std::move(value));
-        }
+    CartesianTree(CartesianTree&& other) noexcept : CartesianTree() {
+        std::swap(root_, other.root_);
+        std::swap(begin_, other.begin_);
+        std::swap(end_, other.end_);
+        std::swap(size_, other.size_);
     }
     CartesianTree& operator=(const CartesianTree& other) {
         if (root_ == other.root_) {
@@ -115,7 +100,7 @@ public:
         }
         this->~CartesianTree();
         for (const T& value : other) {
-            insert(value);
+            Insert(value);
         }
         return *this;
     }
@@ -123,48 +108,42 @@ public:
         if (root_ == other.root_) {
             return *this;
         }
-        begin_ = other.begin_;
-        last_ = other.last_;
-        root_ = other.root_;
-        size_ = other.size_;
-        other.begin_ = nullptr;
-        other.last_ = nullptr;
-        other.root_ = nullptr;
-        other.size_ = 0;
+        std::swap(root_, other.root_);
+        std::swap(begin_, other.begin_);
+        std::swap(end_, other.end_);
+        std::swap(size_, other.size_);
         return *this;
     }
 
     ~CartesianTree() override {
-        begin_ = nullptr;
-        last_ = nullptr;
+        root_ = std::make_shared<Node>();
+        begin_ = root_;
+        end_ = root_;
         size_ = 0;
-        FreeMemory(root_);
-        root_ = nullptr;
     }
 
-    [[nodiscard]] size_t size() const override {
+    [[nodiscard]] size_t Size() const override {
         return size_;
     }
-    [[nodiscard]] bool empty() const override {
+    [[nodiscard]] bool Empty() const override {
         return !size_;
     }
 
-    std::shared_ptr<BaseImpl> find_impl(const T& value) const override {
-        return Find(root_, value);
+    std::shared_ptr<BaseImpl> Find(const T& value) const override {
+        std::optional<T> val(value);
+        return FindRec(root_, val);
     }
-    std::shared_ptr<BaseImpl> lower_bound_impl(const T& value) const override {
-        if (!root_) {
-            return End();
-        }
-        if (value < root_->value_) {
+    std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
+        std::optional<T> val(value);
+        if (val < root_->value_) {
             if (root_->left_) {
-                return LowerBound(root_->left_, value);
+                return LowerBoundRec(root_->left_, val);
             } else {
                 return std::make_shared<CartesianTreeItImpl>(root_);
             }
-        } else if (root_->value_ < value) {
+        } else if (root_->value_ < val) {
             if (root_->right_) {
-                return LowerBound(root_->right_, value);
+                return LowerBoundRec(root_->right_, val);
             } else {
                 return End();
             }
@@ -173,29 +152,30 @@ public:
         }
     }
 
-    void insert(const T& value) override {
+    void Insert(const T& value) override {
         std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
-        if (Insert(root_, new_node)) {
+        if (InsertRec(root_, new_node)) {
             ++size_;
         }
         RecalcBeginEnd();
     }
-    void erase(const T& value) override {
-        if (Erase(root_, value)) {
+    void Erase(const T& value) override {
+        std::optional<T> val(value);
+        if (EraseRec(root_, val)) {
             --size_;
         }
         RecalcBeginEnd();
     }
 
-    void clear() override {
+    void Clear() override {
         this->~CartesianTree<T>();
     }
 
 private:
     std::shared_ptr<Node> begin_;
-    std::shared_ptr<Node> last_;
+    std::shared_ptr<Node> end_;
     std::shared_ptr<Node> root_;
-    size_t size_;
+    size_t size_{};
 
     /* ---------------------------------------------------
      * --------------ITERATOR IMPLEMENTATION--------------
@@ -205,19 +185,16 @@ private:
     class CartesianTreeItImpl : public BaseImpl {
     public:
         CartesianTreeItImpl() = delete;
-        explicit CartesianTreeItImpl(std::shared_ptr<Node> pointer, bool is_ended = false) {
-            it_ = pointer;
-            is_ended_ = is_ended;
+        explicit CartesianTreeItImpl(std::shared_ptr<Node> pointer) : it_(pointer) {
         }
-        CartesianTreeItImpl(const CartesianTreeItImpl& other)
-            : it_(other.it_), is_ended_(other.is_ended_) {
+        CartesianTreeItImpl(const CartesianTreeItImpl& other) : it_(other.it_) {
         }
 
         std::shared_ptr<BaseImpl> Clone() const override {
             return std::make_shared<CartesianTreeItImpl>(*this);
         }
         void Increment() override {
-            if (is_ended_) {
+            if (!it_->value_) {
                 throw std::runtime_error("Index out of range while increasing");
             }
             if (it_->right_) {
@@ -226,80 +203,58 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                while (it_->parent_ && it_->parent_->right_ == it_) {
-                    it_ = it_->parent_;
+                while (it_->parent_.lock()->right_ == it_) {
+                    it_ = it_->parent_.lock();
                 }
-                if (it_->parent_) {
-                    it_ = it_->parent_;
-                } else {
-                    while (it_->right_) {
-                        it_ = it_->right_;
-                    }
-                    is_ended_ = true;
-                }
+                it_ = it_->parent_.lock();
             }
         }
         void Decrement() override {
-            if (is_ended_) {
-                is_ended_ = false;
-            } else if (it_->left_) {
+            if (it_->left_) {
                 it_ = it_->left_;
                 while (it_->right_) {
                     it_ = it_->right_;
                 }
             } else {
-                while (it_->parent_ && it_->parent_->left_ == it_) {
-                    it_ = it_->parent_;
+                while (it_->parent_.lock() && it_->parent_.lock()->left_ == it_) {
+                    it_ = it_->parent_.lock();
                 }
-                if (it_->parent_) {
-                    it_ = it_->parent_;
+                if (it_->parent_.lock()) {
+                    it_ = it_->parent_.lock();
                 } else {
                     throw std::runtime_error("Index out of range while decreasing");
                 }
             }
         }
         T Dereferencing() const override {
-            if (is_ended_) {
+            if (!it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
-            return it_->value_;
+            return *(it_->value_);
         }
         const T* Arrow() const override {
-            if (is_ended_) {
+            if (!it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
-            return &it_->value_;
+            return &(*it_->value_);
         }
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
             auto casted = std::static_pointer_cast<CartesianTreeItImpl>(other);
             if (!casted) {
                 return false;
             }
-            if (!it_ && !casted->it_) {
-                return true;
-            }
-            if (is_ended_) {
-                return casted->is_ended_;
-            } else {
-                if (casted->is_ended_) {
-                    return false;
-                } else {
-                    return it_ == casted->it_;
-                }
-            }
+            return it_ == casted->it_;
         }
 
     private:
         std::shared_ptr<Node> it_;
-        bool is_ended_;
     };
 
     std::shared_ptr<BaseImpl> Begin() const override {
         return std::make_shared<CartesianTreeItImpl>(begin_);
     }
     std::shared_ptr<BaseImpl> End() const override {
-        std::shared_ptr<Node> end_ = last_;
-        return std::make_shared<CartesianTreeItImpl>(end_, true);
+        return std::make_shared<CartesianTreeItImpl>(end_);
     }
 
     /* ---------------------------------------------------
@@ -329,8 +284,8 @@ private:
         }
     }
 
-    static void Split(std::shared_ptr<Node> root, const T& value, std::shared_ptr<Node>& left_sub,
-                      std::shared_ptr<Node>& right_sub) {
+    static void Split(std::shared_ptr<Node> root, const std::optional<T>& value,
+                      std::shared_ptr<Node>& left_sub, std::shared_ptr<Node>& right_sub) {
         std::shared_ptr<Node> new_subtree = nullptr;
         if (value < root->value_) {
             if (!root->left_) {
@@ -342,7 +297,7 @@ private:
                     new_subtree->parent_ = root;
                 }
                 if (left_sub) {
-                    left_sub->parent_ = nullptr;
+                    left_sub->parent_ = std::weak_ptr<Node>();
                 }
             }
             right_sub = root;
@@ -356,35 +311,37 @@ private:
                     new_subtree->parent_ = root;
                 }
                 if (right_sub) {
-                    right_sub->parent_ = nullptr;
+                    right_sub->parent_ = std::weak_ptr<Node>();
                 }
             }
             left_sub = root;
         }
     }
 
-    std::shared_ptr<BaseImpl> Find(std::shared_ptr<Node> from, const T& value) const {
+    std::shared_ptr<BaseImpl> FindRec(std::shared_ptr<Node> from,
+                                      const std::optional<T>& value) const {
         if (!from) {
             return End();
         }
         if (value < from->value_) {
-            return Find(from->left_, value);
+            return FindRec(from->left_, value);
         } else if (from->value_ < value) {
-            return Find(from->right_, value);
+            return FindRec(from->right_, value);
         } else {
             return std::make_shared<CartesianTreeItImpl>(from);
         }
     }
-    static std::shared_ptr<BaseImpl> LowerBound(std::shared_ptr<Node> from, const T& value) {
+    static std::shared_ptr<BaseImpl> LowerBoundRec(std::shared_ptr<Node> from,
+                                                   const std::optional<T>& value) {
         if (value < from->value_) {
             if (from->left_) {
-                return LowerBound(from->left_, value);
+                return LowerBoundRec(from->left_, value);
             } else {
                 return std::make_shared<CartesianTreeItImpl>(from);
             }
         } else if (from->value_ < value) {
             if (from->right_) {
-                return LowerBound(from->right_, value);
+                return LowerBoundRec(from->right_, value);
             } else {
                 auto impl = std::make_shared<CartesianTreeItImpl>(from);
                 impl->Increment();
@@ -395,7 +352,7 @@ private:
         }
     }
 
-    static bool Insert(std::shared_ptr<Node>& from, std::shared_ptr<Node> new_node) {
+    static bool InsertRec(std::shared_ptr<Node>& from, std::shared_ptr<Node> new_node) {
         if (!from) {
             from = new_node;
             return true;
@@ -427,12 +384,12 @@ private:
         } else if ((from->value_ < new_node->value_) || (new_node->value_ < from->value_)) {
             bool result;
             if (new_node->value_ < from->value_) {
-                result = Insert(from->left_, new_node);
+                result = InsertRec(from->left_, new_node);
                 if (from->left_) {
                     from->left_->parent_ = from;
                 }
             } else {
-                result = Insert(from->right_, new_node);
+                result = InsertRec(from->right_, new_node);
                 if (from->right_) {
                     from->right_->parent_ = from;
                 }
@@ -441,35 +398,28 @@ private:
         }
         return false;
     }
-    static bool Erase(std::shared_ptr<Node>& from, const T& value) {
+    static bool EraseRec(std::shared_ptr<Node>& from, const std::optional<T>& value) {
+        bool result;
         if (!from) {
             return false;
-        } else if (!(from->value_ < value) && !(value < from->value_)) {
+        } else if (value < from->value_) {
+            result = EraseRec(from->left_, value);
+            if (from->left_) {
+                from->left_->parent_ = from;
+            }
+        } else if (from->value_ < value) {
+            result = EraseRec(from->right_, value);
+            if (from->right_) {
+                from->right_->parent_ = from;
+            }
+        } else {
             from = Merge(from->left_, from->right_);
             return true;
-        } else {
-            bool result;
-            if (value < from->value_) {
-                result = Erase(from->left_, value);
-                if (from->left_) {
-                    from->left_->parent_ = from;
-                }
-            } else {
-                result = Erase(from->right_, value);
-                if (from->right_) {
-                    from->right_->parent_ = from;
-                }
-            }
-            return result;
         }
+        return result;
     }
 
     void RecalcBeginEnd() {
-        if (!root_) {
-            begin_ = nullptr;
-            last_ = nullptr;
-            return;
-        }
         std::shared_ptr<Node> cur_node = root_;
         while (cur_node->left_) {
             cur_node = cur_node->left_;
@@ -479,9 +429,10 @@ private:
         while (cur_node->right_) {
             cur_node = cur_node->right_;
         }
-        last_ = cur_node;
+        end_ = cur_node;
     }
 
+    // No longer need
     static void FreeMemory(std::shared_ptr<Node> from) {
         if (!from) {
             return;
