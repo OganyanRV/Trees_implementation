@@ -3,11 +3,12 @@ project(Trees)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(TREES trees/abstract_tree.cpp
-        trees/avl_tree.cpp
-        trees/cartesian_tree.cpp
-        trees/rb_tree.cpp
-        trees/splay_tree.cpp)
+set(TREES trees/abstract_tree.h
+        trees/avl_tree.h
+        trees/cartesian_tree.h
+        trees/rb_tree.h
+        trees/splay_tree.h
+        trees/tree_factory.h)
 
 set(TESTS tests/full_test_set.cpp)
 

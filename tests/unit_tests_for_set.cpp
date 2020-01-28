@@ -3,7 +3,7 @@
 #include <set>
 #include <string>
 
-#include "../trees/cartesian_tree.cpp"
+#include "../trees/cartesian_tree.h"
 
 void fail(const char* message) {
     std::cerr << "Fail:\n";

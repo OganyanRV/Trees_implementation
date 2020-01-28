@@ -1,10 +1,11 @@
+#pragma once
 #include <initializer_list>
 #include <exception>
 #include <memory>
 #include <random>
 #include <optional>
 
-#include "abstract_tree.cpp"
+#include "abstract_tree.h"
 
 template <class T>
 bool operator<(const std::optional<T>& lhs, const std::optional<T>& rhs) {

@@ -1,7 +1,8 @@
+#pragma once
 #include <initializer_list>
 #include <memory>
 
-#include "abstract_tree.cpp"
+#include "abstract_tree.h"
 
 template <class T>
 class SplayTree : public ITree<T> {
@@ -22,16 +23,16 @@ public:
 
     ~SplayTree() override;
 
-    [[nodiscard]] size_t size() const override;
-    [[nodiscard]] bool empty() const override;
+    [[nodiscard]] size_t Size() const override;
+    [[nodiscard]] bool Empty() const override;
 
-    std::shared_ptr<BaseImpl> find_impl(const T& value) const override;
-    std::shared_ptr<BaseImpl> lower_bound_impl(const T& value) const override;
+    std::shared_ptr<BaseImpl> Find(const T& value) const override;
+    std::shared_ptr<BaseImpl> LowerBound(const T& value) const override;
 
-    void insert(const T& value) override;
-    void erase(const T& value) override;
+    void Insert(const T& value) override;
+    void Erase(const T& value) override;
 
-    void clear() override;
+    void Clear() override;
 
     /* ---------------------------------------------------
      * --------------ITERATOR IMPLEMENTATION--------------
