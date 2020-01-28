@@ -2,7 +2,8 @@
 #include <initializer_list>
 #include <memory>
 
-#include "abstract_tree.h"
+template <class T>
+class ITree;
 
 template <class T>
 class SplayTree : public ITree<T> {

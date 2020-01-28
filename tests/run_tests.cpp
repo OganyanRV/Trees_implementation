@@ -1,10 +1,12 @@
 #include <iostream>
+#include <string>
 
 #include "test_framework.cpp"
 
 using std::cout;
 
 int main() {
-    std::shared_ptr<ITree<int>> tree = IFactory::Produce<int, CartesianTree<int>>();
-    std::cout << tree->empty() << ' ' << tree->size();
+    TestFramework framework;
+    framework.RunAll(Substr("Cartesian"));
+    return 0;
 }

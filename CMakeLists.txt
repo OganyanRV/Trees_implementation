@@ -7,10 +7,10 @@ set(TREES trees/abstract_tree.h
         trees/avl_tree.h
         trees/cartesian_tree.h
         trees/rb_tree.h
-        trees/splay_tree.h
-        trees/tree_factory.h)
+        trees/splay_tree.h)
 
-set(TESTS tests/full_test_set.cpp)
+set(TESTS tests/full_test_set.h
+        tests/test_framework.cpp)
 
 add_library(trees ${TREES})
 add_library(tests ${TESTS})

@@ -5,7 +5,8 @@
 #include <random>
 #include <optional>
 
-#include "abstract_tree.h"
+template <class T>
+class ITree;
 
 template <class T>
 bool operator<(const std::optional<T>& lhs, const std::optional<T>& rhs) {

@@ -1,9 +1,17 @@
 #pragma once
+#include <cassert>
 #include <memory>
+
+#include "avl_tree.h"
+#include "cartesian_tree.h"
+#include "rb_tree.h"
+#include "splay_tree.h"
 
 template <class T>
 class ITree {
 protected:
+    ITree() = default;
+
     class ITreeItImpl {
     public:
         virtual ~ITreeItImpl() = default;
@@ -31,6 +39,8 @@ protected:
     virtual void Clear() = 0;
 
 public:
+    virtual ~ITree() = default;
+
     class iterator {
     public:
         iterator() = delete;
@@ -83,8 +93,6 @@ public:
     iterator end() const {
         return iterator(End());
     }
-
-    virtual ~ITree() = default;
 
     [[nodiscard]] size_t size() const {
         return Size();
