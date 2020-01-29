@@ -1,3 +1,5 @@
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
 #include <iostream>
 #include <string>
 
@@ -5,8 +7,7 @@
 
 using std::cout;
 
-int main() {
+TEST_CASE("Test all") {
     TestFramework framework;
     framework.RunAll(Substr("Cartesian"));
-    return 0;
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "catch.hpp"
 #include <iostream>
 
 #include "../trees/abstract_tree.h"
@@ -26,7 +27,8 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type = ImplType::kRB) {
 }
 
 void SomeTest(const std::string& name, ImplType type) {
-    auto tree = MakeTree<int>(ImplType::kCartesian);
+    auto tree = MakeTree<int>(type);
     tree->insert(1);
+    REQUIRE(*tree->begin() == 1);
     cout << "testing " << name << ". Result: " << *tree->begin() << '\n';
 }
