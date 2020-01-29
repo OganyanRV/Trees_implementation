@@ -1,22 +1,35 @@
 #pragma once
 #include <algorithm>
 #include <functional>
+#include <iostream>
 #include <string>
-#include <unordered_map>
+#include <map>
 
 #include "full_test_set.h"
+
+using std::cout;
 
 class TestFramework {
 public:
     TestFramework() {
-        // All types of trees are listed below
+        // All types of trees are listed below.
         types_.emplace("AVL tree", ImplType::kAVL);
         types_.emplace("Cartesian tree", ImplType::kCartesian);
         types_.emplace("Red-Black tree", ImplType::kRB);
         types_.emplace("Splay tree", ImplType::kSplay);
 
-        // All tests are listed below
+        /* All tests are listed below.
+         * We'll use '!' for good tests that we are sure of,
+         * '%' for useless and demonstrative tests.
+         * You can also use your own symbol for your tests.
+         */
         tests_.emplace("%_simple_test", SomeTest);
+        tests_.emplace("!_emptiness_test", EmptinessTest);
+        tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
+        tests_.emplace("!_empty_copying_test", EmptyCopyingTest);
+        tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
+        tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
+        tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
     }
 
     template <class TreePredicate>
@@ -27,7 +40,9 @@ public:
         }
         for (auto &type : types_) {
             if (tree_predicate(type.first)) {
-                it->second(type.first, type.second);
+                cout << "Running " << it->first << " on " << type.first << ": ";
+                it->second(type.second);
+                cout << "Success!\n\n";
             }
         }
     }
@@ -46,9 +61,13 @@ public:
         }
         for (auto &test : tests_) {
             if (test_predicate(test.first)) {
+                cout << "Running " << test.first << " on some trees:\n";
                 for (auto &tree : trees_for_tests) {
-                    test.second(tree.first, tree.second);
+                    cout << tree.first << ": ";
+                    test.second(tree.second);
+                    cout << "Success!\n";
                 }
+                cout << "Test passed!\n\n";
             }
         }
     }
@@ -89,8 +108,8 @@ public:
     }
 
 private:
-    std::unordered_map<std::string, ImplType> types_;
-    std::unordered_map<std::string, std::function<void(const std::string &, ImplType)>> tests_;
+    std::map<std::string, ImplType> types_;
+    std::map<std::string, std::function<void(ImplType)>> tests_;
 
     class Every {
     public:

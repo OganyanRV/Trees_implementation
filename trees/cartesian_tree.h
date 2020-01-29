@@ -100,7 +100,10 @@ public:
         if (root_ == other.root_) {
             return *this;
         }
-        this->~CartesianTree();
+        root_ = std::make_shared<Node>();
+        begin_ = root_;
+        end_ = root_;
+        size_ = 0;
         for (const T& value : other) {
             Insert(value);
         }
@@ -170,7 +173,10 @@ public:
     }
 
     void Clear() override {
-        this->~CartesianTree<T>();
+        root_ = std::make_shared<Node>();
+        begin_ = root_;
+        end_ = root_;
+        size_ = 0;
     }
 
 private:

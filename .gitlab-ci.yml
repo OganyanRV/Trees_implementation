@@ -18,4 +18,3 @@ build:
         - cmake ../
         - make
         - ./run_tests
-        #- ./unit_tests_for_set

@@ -100,6 +100,7 @@ public:
     [[nodiscard]] bool empty() const {
         return Empty();
     }
+
     iterator find(const T& value) const {
         return iterator(Find(value));
     }
