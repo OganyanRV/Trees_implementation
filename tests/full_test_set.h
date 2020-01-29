@@ -1,5 +1,5 @@
 #pragma once
-#include "catch.hpp"
+#include "../catch/catch.hpp"
 #include <iostream>
 
 #include "../trees/abstract_tree.h"
