@@ -19,6 +19,8 @@ public:
 
     RBTree(const RBTree& other);
     RBTree(RBTree&& other) noexcept;
+    RBTree(std::shared_ptr<ITree<T>> other) : RBTree(*dynamic_cast<RBTree<T>*>(other.get())) {
+    }
     RBTree& operator=(const RBTree& other);
     RBTree& operator=(RBTree&& other) noexcept;
 

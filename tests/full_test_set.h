@@ -2,6 +2,8 @@
 #include "../catch/catch.hpp"
 #include <exception>
 #include <iostream>
+#include <set>
+#include <vector>
 
 #include "../trees/abstract_tree.h"
 
@@ -18,19 +20,19 @@ enum class ImplType { kAVL, kCartesian, kRB, kSplay };
 /* This function returns a new tree of given type 'type'
  * as a shared pointer to base class.
  */
-template <class T>
-std::shared_ptr<ITree<T>> MakeTree(ImplType type = ImplType::kRB) {
+template <class T, class... Types>
+std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     if (type == ImplType::kAVL) {
         throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<AVLTree<T>>();
+        // return std::make_shared<AVLTree<T>>(params);
     } else if (type == ImplType::kCartesian) {
-        return std::make_shared<CartesianTree<T>>();
+        return std::make_shared<CartesianTree<T>>(params...);
     } else if (type == ImplType::kRB) {
         throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<RBTree<T>>();
+        // return std::make_shared<RBTree<T>>(params);
     } else if (type == ImplType::kSplay) {
         throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<SplayTree<T>>();
+        // return std::make_shared<SplayTree<T>>(params);
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -80,6 +82,23 @@ void MakeCopyAss(ImplType type, std::shared_ptr<ITree<T>>& lhs, std::shared_ptr<
     }
 }
 
+template <class T>
+bool operator==(std::set<T> set, std::shared_ptr<ITree<T>> tree) {
+    if (set.size() != tree->size()) {
+        return false;
+    }
+    auto tree_it = tree->begin();
+    for (const T& elem : set) {
+        REQUIRE_NOTHROW(*tree_it);
+        if (elem != *tree_it) {
+            return false;
+        }
+        REQUIRE_NOTHROW(++tree_it);
+    }
+    REQUIRE(tree_it == tree->end());
+    return true;
+}
+
 void SomeTest(ImplType type) {
     auto tree = MakeTree<int>(type);
     tree->insert(1);
@@ -92,6 +111,8 @@ void EmptinessTest(ImplType type) {
     REQUIRE(tree->empty());
     REQUIRE_NOTHROW(tree->clear());
     REQUIRE(tree->size() == 0);
+    REQUIRE_NOTHROW(tree->erase(5));
+    REQUIRE(tree->empty());
 }
 
 void EmptyIteratorsTest(ImplType type) {
@@ -132,4 +153,48 @@ void EmptyCopyingTest(ImplType type) {
     REQUIRE(tree3->begin() != tree2->begin());
     REQUIRE(tree3->end() != tree2->end());
     REQUIRE_NOTHROW(MakeCopyAss(type, tree3, tree3));
+}
+
+void OneTwoElementTest(ImplType type) {
+    std::vector<int> fill = {1, 0};
+    auto tree = MakeTree<int>(type);
+    std::set<int> set;
+    for (int& value : fill) {
+        tree->insert(value);
+        set.insert(value);
+        REQUIRE(!tree->empty());
+    }
+    REQUIRE(set == tree);
+    set.clear();
+    REQUIRE_NOTHROW(tree->clear());
+    REQUIRE(set == tree);
+    REQUIRE(tree->empty());
+}
+
+void OneTwoElementIteratorsTest(ImplType type) {
+    std::vector<int> fill = {3, 4, 2, 5, 1};
+    std::set<int> set(fill.begin(), fill.end());
+    auto tree = MakeTree<int, std::vector<int>::iterator, std::vector<int>::iterator>(
+        type, fill.begin(), fill.end());
+    REQUIRE(set == tree);
+    REQUIRE(tree->find(10) == tree->end());
+    REQUIRE(tree->lower_bound(0) == tree->begin());
+    auto tree1 = MakeTree<int, std::shared_ptr<ITree<int>>>(type, tree);
+    /*{
+        auto it = tree->begin();
+        REQUIRE_THROWS_AS(--it, std::exception);
+    }
+    {
+        auto it = tree->begin();
+        REQUIRE_THROWS_AS(++it, std::exception);
+    }
+    {
+        auto it = tree->end();
+        REQUIRE_THROWS_AS(it--, std::exception);
+    }
+    {
+        auto it = tree->begin();
+        REQUIRE_THROWS_AS(it++, std::exception);
+    }
+    REQUIRE(tree->empty());*/
 }

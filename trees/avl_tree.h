@@ -19,6 +19,8 @@ public:
 
     AVLTree(const AVLTree &other);
     AVLTree(AVLTree &&other) noexcept;
+    AVLTree(std::shared_ptr<ITree<T>> other) : AVLTree(*dynamic_cast<AVLTree<T> *>(other.get())) {
+    }
     AVLTree &operator=(const AVLTree &other);
     AVLTree &operator=(AVLTree &&other) noexcept;
 

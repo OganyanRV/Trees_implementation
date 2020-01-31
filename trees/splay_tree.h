@@ -19,6 +19,9 @@ public:
 
     SplayTree(const SplayTree& other);
     SplayTree(SplayTree&& other) noexcept;
+    SplayTree(std::shared_ptr<ITree<T>> other)
+        : SplayTree(*dynamic_cast<SplayTree<T>*>(other.get())) {
+    }
     SplayTree& operator=(const SplayTree& other);
     SplayTree& operator=(SplayTree&& other) noexcept;
 

@@ -96,6 +96,9 @@ public:
         std::swap(end_, other.end_);
         std::swap(size_, other.size_);
     }
+    CartesianTree(std::shared_ptr<ITree<T>> other)
+        : CartesianTree(*dynamic_cast<CartesianTree<T>*>(other.get())) {
+    }
     CartesianTree& operator=(const CartesianTree& other) {
         if (root_ == other.root_) {
             return *this;
