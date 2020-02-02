@@ -38,28 +38,6 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     }
 }
 
-/* This function returns a copy of given tree of type 'type'
- * as a shared pointer to base class.
- * It uses copy constructor.
- */
-template <class T>
-std::shared_ptr<ITree<T>> MakeCopyCons(ImplType type, std::shared_ptr<ITree<T>> arg) {
-    if (type == ImplType::kAVL) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<AVLTree<T>>(*dynamic_cast<AVLTree<T>*>(arg.get()));
-    } else if (type == ImplType::kCartesian) {
-        return std::make_shared<CartesianTree<T>>(*dynamic_cast<CartesianTree<T>*>(arg.get()));
-    } else if (type == ImplType::kRB) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<RBTree<T>>(*dynamic_cast<RBTree<T>*>(arg.get()));
-    } else if (type == ImplType::kSplay) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<SplayTree<T>>(*dynamic_cast<SplayTree<T>*>(arg.get()));
-    } else {
-        throw std::runtime_error("Impossible behaviour");
-    }
-}
-
 /* This function returns a copy of given tree (rhs) of type 'type'
  * as a shared pointer to base class (lhs).
  * It uses copy assignment operator.
@@ -141,12 +119,12 @@ void EmptyIteratorsTest(ImplType type) {
 
 void EmptyCopyingTest(ImplType type) {
     auto tree1 = MakeTree<int>(type);
-    auto tree2 = MakeCopyCons<int>(type, tree1);
+    auto tree2 = MakeTree<int, std::shared_ptr<ITree<int>>>(type, tree1);
     REQUIRE(tree1->empty());
     REQUIRE(tree2->empty());
     REQUIRE(tree1->begin() != tree2->begin());
     REQUIRE(tree1->end() != tree2->end());
-    auto tree3 = MakeCopyCons<int>(type, tree1);
+    auto tree3 = MakeTree<int, std::shared_ptr<ITree<int>>>(type, tree1);
     MakeCopyAss(type, tree3, tree2);
     REQUIRE(tree2->empty());
     REQUIRE(tree3->empty());
@@ -155,7 +133,7 @@ void EmptyCopyingTest(ImplType type) {
     REQUIRE_NOTHROW(MakeCopyAss(type, tree3, tree3));
 }
 
-void OneTwoElementTest(ImplType type) {
+void FewElementsTest(ImplType type) {
     std::vector<int> fill = {1, 0};
     auto tree = MakeTree<int>(type);
     std::set<int> set;
@@ -171,14 +149,15 @@ void OneTwoElementTest(ImplType type) {
     REQUIRE(tree->empty());
 }
 
-void OneTwoElementIteratorsTest(ImplType type) {
+void FewElementsIteratorTest(ImplType type) {
     std::vector<int> fill = {3, 4, 2, 5, 1};
     std::set<int> set(fill.begin(), fill.end());
-    auto tree = MakeTree<int, std::vector<int>::iterator, std::vector<int>::iterator>(
-        type, fill.begin(), fill.end());
+    typedef typename std::vector<int>::iterator Iterator;
+    auto tree = MakeTree<int, Iterator, Iterator>(type, fill.begin(), fill.end());
     REQUIRE(set == tree);
     REQUIRE(tree->find(10) == tree->end());
     REQUIRE(tree->lower_bound(0) == tree->begin());
+    REQUIRE(tree->lower_bound())
     auto tree1 = MakeTree<int, std::shared_ptr<ITree<int>>>(type, tree);
     /*{
         auto it = tree->begin();

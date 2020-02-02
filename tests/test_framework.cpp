@@ -27,8 +27,8 @@ public:
         tests_.emplace("!_emptiness_test", EmptinessTest);
         tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
         tests_.emplace("!_empty_copying_test", EmptyCopyingTest);
-        tests_.emplace("!_one-two_element_test", OneTwoElementTest);
-        tests_.emplace("!_one-two_element_iterators_test", OneTwoElementIteratorsTest);
+        tests_.emplace("!_few_elements_test", FewElementsTest);
+        tests_.emplace("!_few_elements_iterator_test", FewElementsIteratorTest);
         tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
     }
 
