@@ -229,7 +229,7 @@ private:
         }
 
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
-            auto casted = std::static_pointer_cast<RBTreeItImpl>(other);
+            auto casted = std::dynamic_pointer_cast<RBTreeItImpl>(other);
             if (!casted) {
                 return false;
             }
