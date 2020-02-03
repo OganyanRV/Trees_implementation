@@ -132,19 +132,14 @@ public:
     }
 
     void Insert(const T& value) override {
-        std::shared_ptr<RBTreeItImpl> find = std::static_pointer_cast<RBTreeItImpl>(Find(value));
-
-
-        if (find->IsEqual(End())) {
-            std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
-            InsertImplementation(new_node);
+        std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
+        if (InsertImplementation(new_node)) {
             ++size_;
         }
     }
+
     void Erase(const T& value) override {
         std::shared_ptr<RBTreeItImpl> find = std::static_pointer_cast<RBTreeItImpl>(Find(value));
-
-
         if (find->IsEqual(End())) {
             return;
         }
@@ -325,13 +320,13 @@ private:
         end_->parent_ = node;
     }
 
-    void InsertImplementation(const std::shared_ptr<Node>& new_node) {
+    bool InsertImplementation(const std::shared_ptr<Node>& new_node) {
         RemoveLast();
 
         if (!(root_)) {
             root_ = new_node;
             BLCheck();
-            return;
+            return true;
         }
 
         auto cur_node = root_;
@@ -343,7 +338,10 @@ private:
 
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
+            } else {
+                return false;
             }
+
         }
 
         if (new_node->value_ < cur_node->value_) {
@@ -354,6 +352,7 @@ private:
         new_node->parent_ = cur_node;
         RBBalancing(new_node);
         BLCheck();
+        return true;
     }
 
     void RBBalancing(std::shared_ptr<Node> from) {
