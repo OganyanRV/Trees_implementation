@@ -50,7 +50,7 @@ public:
         std::shared_ptr<BaseImpl> Clone() const override;
         void Increment() override;
         void Decrement() override;
-        T Dereferencing() const override;
+        const T Dereferencing() const override;
         const T *Arrow() const override;
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override;
     };

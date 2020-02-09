@@ -19,7 +19,7 @@ protected:
         virtual std::shared_ptr<ITreeItImpl> Clone() const = 0;
         virtual void Increment() = 0;
         virtual void Decrement() = 0;
-        virtual T Dereferencing() const = 0;
+        virtual const T Dereferencing() const = 0;
         virtual const T* Arrow() const = 0;
         virtual bool IsEqual(std::shared_ptr<ITreeItImpl> other) const = 0;
     };
@@ -69,7 +69,7 @@ public:
             return cpy;
         }
 
-        T operator*() const {
+        const T operator*() const {
             return pimpl_->Dereferencing();
         }
         const T* operator->() const {
@@ -109,10 +109,10 @@ public:
     }
 
     void insert(const T& value) {
-        return Insert(value);
+        Insert(value);
     }
     void erase(const T& value) {
-        return Erase(value);
+        Erase(value);
     }
 
     void clear() {
