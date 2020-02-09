@@ -131,29 +131,8 @@ public:
             return;
         }
 
-        //EraseImplementation(find->GetPointer());
+        EraseImplementation(find->GetPointer());
         --size_;
-    }
-
-    void printT(std::ostream& ostr, std::shared_ptr<Node> p, int lvl) const {
-
-        if (p) {
-            printT(ostr, p->left_, lvl + 1);
-            for (int i = 0; i < lvl; i++) {
-                ostr << "     ";
-            }
-            if (p->value_) {
-                ostr  << *(p->value_) <<'('<< (int)(p->height_) << ',' << BFactor(p) <<')' <<'\n';
-            } else {
-                ostr << "+";
-            }
-            printT(ostr, p->right_, lvl + 1);
-        }
-    }
-
-    friend inline std::ostream& operator<<(std::ostream& ostr, const AVLTree<T>& tree) {
-        tree.printT(ostr, tree.root_, 0);
-        return ostr;
     }
 
     void Clear() override {
@@ -474,6 +453,109 @@ private:
         }
         BLCheck();
         return true;
+    }
+
+    void EraseImplementation(std::shared_ptr<Node> delete_node) {
+        RemoveLast();
+
+        auto parent = delete_node->parent_.lock();
+        std::shared_ptr<Node> child_node;
+
+         //Node doesn't have children
+        if (!delete_node->right_ && !delete_node->left_) {
+            if (parent) {
+                if (parent->left_ == delete_node) {
+                    parent->left_ = nullptr;
+                } else {
+                    parent->right_ = nullptr;
+                }
+            } else {
+                root_ = nullptr;
+            }
+            //Node has only 1 child
+        } else if ((delete_node->right_ && !delete_node->left_) || (!delete_node->right_ && delete_node->left_)) {
+
+            child_node = delete_node->right_ ? delete_node->right_ : delete_node->left_;
+            if (!parent) {
+                root_ = child_node;
+
+            } else {
+                if (parent->left_ == delete_node) {
+                    parent->left_ = child_node;
+                } else {
+                    parent->right_ = child_node;
+                }
+                child_node->parent_ = parent;
+            }
+        } else {
+            std::shared_ptr<Node> swap_node = delete_node->right_;
+            while (swap_node->left_) {
+                swap_node = swap_node->left_;
+            }
+            ReplaceNodes(delete_node, swap_node);
+            if (delete_node->right_) {
+                parent = delete_node->parent_.lock();
+                parent->left_ = delete_node->right_;
+                delete_node->right_->parent_ = parent;
+
+            }
+        }
+
+        while (parent) {
+            AVLFixBalance(parent);
+            parent = parent->parent_.lock();
+        }
+
+        BLCheck();
+    }
+
+    void ReplaceNodes(std::shared_ptr<Node>& node1, std::shared_ptr<Node>& node2) {
+        auto node1_parent = (node1->parent_).lock();
+
+        if (node1_parent) {
+            if (node1_parent->left_ == node1) {
+                node1_parent->left_ = node2;
+            } else {
+                node1_parent->right_ = node2;
+            }
+        }
+        auto  node2_parent = node2->parent_.lock();
+        if (node2_parent) {
+            if (node2_parent->left_ == node2) {
+                node2_parent->left_ = node1;
+            } else {
+                node2_parent->right_ = node1;
+            }
+
+        }
+        if (node2_parent == node1) {
+            node2->parent_ = node1->parent_;
+            node1->parent_ = node2;
+        } else {
+            auto tmp = node2->parent_;
+            node2->parent_ = node1->parent_;
+            node1->parent_ = tmp;
+        }
+
+        node2->left_ = node1->left_;
+        if (node1->left_) {
+            node1->left_->parent_ = node2;
+        }
+        node1->left_ = nullptr;
+
+        unsigned char height = node2->height_;
+        node2->height_ = node1->height_;
+        node1->height_ = height;
+
+        auto children = node2->right_;
+        node2->right_ = node1->right_;
+        if (node1->right_) {
+            node1->right_->parent_ = node2;
+        }
+        node1->right_ = children;
+        if (children) {
+            children->parent_ = node1;
+        }
     }
 };
 
