@@ -17,8 +17,6 @@
  * Don't forget to name your test!
  */
 
-using std::cout;
-
 enum class ImplType { kAVL, kCartesian, kRB, kSplay };
 
 /* This function returns a new tree of given type 'type'
@@ -299,6 +297,33 @@ void FewElementsCopyingTest(ImplType type) {
         MakeCopyAssignment(type, tree3, tree2);
         tree2->clear();
         REQUIRE(tree3->size() == 2);
+    }
+    {
+        std::vector<int> fill = {3, 3, -1, 6, 0, 0, 17, -5, 4, 2};
+        std::set<int> set(fill.begin(), fill.end());
+        auto tree1 = MakeTree<int>(type, fill.begin(), fill.end());
+        auto tree2 = MakeTree<int>(type);
+        MakeCopyAssignment(type, tree2, tree1);
+        tree2->insert(5);
+        tree2->insert(18);
+        tree2->insert(-2);
+        auto tree1_it = tree1->begin(), tree2_it = tree2->begin();
+        auto it = set.begin();
+        while (tree1_it != tree1->end() || tree2_it != tree2->end() || it != set.end()) {
+            if (*tree2_it == 5 || *tree2_it == 18 || *tree2_it == -2) {
+                ++tree2_it;
+                continue;
+            }
+            if (tree1_it == tree1->end() || tree2_it == tree2->end() || it == set.end()) {
+                REQUIRE(tree1_it == tree1->end());
+                REQUIRE(tree2_it == tree2->end());
+                REQUIRE(it == set.end());
+            } else {
+                REQUIRE(*tree1_it == *tree2_it);
+                REQUIRE(*tree1_it == *it);
+                ++tree1_it, ++tree2_it, ++it;
+            }
+        }
     }
 }
 
