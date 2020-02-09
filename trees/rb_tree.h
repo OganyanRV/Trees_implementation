@@ -214,7 +214,7 @@ private:
             }
         }
 
-        T Dereferencing() const override {
+        const T Dereferencing() const override {
             if (it_ && !(it_->value_).has_value()) {
                 throw std::runtime_error("Index out of range on operator*");
             }
