@@ -12,6 +12,11 @@ using std::cout;
 class TestFramework {
 public:
     TestFramework() {
+#ifdef RELEASE_BUILD
+        cout << "Test framework started at release build\n\n";
+#else
+        cout << "Test framework started at debug build\n\n";
+#endif
         // All types of trees are listed below.
         types_.emplace("AVL tree", ImplType::kAVL);
         types_.emplace("Cartesian tree", ImplType::kCartesian);
