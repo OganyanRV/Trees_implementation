@@ -19,16 +19,14 @@ public:
             height_ = 1;
         }
 
-        explicit Node(const T& value) {
-            value_ = value;
+        explicit Node(const T& value) : value_(value) {
             left_ = nullptr;
             right_ = nullptr;
             parent_ = std::weak_ptr<Node>();
             height_ = 1;
         }
 
-        Node(const Node& other) {
-            value_ = other.value_;
+        Node(const Node& other) : value_(other.value_) {
             height_ = other.height_;
             left_ = other.left_;
             right_ = other.right_;
@@ -136,10 +134,32 @@ public:
     }
 
     void Clear() override {
+        end_->parent_ = std::weak_ptr<Node>();
         root_ = end_;
         begin_ = end_;
         size_ = 0;
     }
+    void printT(std::ostream& ostr, std::shared_ptr<Node> p, int lvl) const {
+
+        if (p) {
+            printT(ostr, p->left_, lvl + 1);
+            for (int i = 0; i < lvl; i++) {
+                ostr << "     ";
+            }
+            if (p->value_) {
+                ostr  << *(p->value_) <<'('<< (int)(p->height_) << ',' << BFactor(p) <<')' <<'\n';
+            } else {
+                ostr << "+";
+            }
+            printT(ostr, p->right_, lvl + 1);
+        }
+    }
+
+    friend inline std::ostream& operator<<(std::ostream& ostr, const AVLTree<T>& tree) {
+        tree.printT(ostr, tree.root_, 0);
+        return ostr;
+    }
+
 
 private:
     std::shared_ptr<Node> begin_;
@@ -190,12 +210,17 @@ private:
                     it_ = it_->right_;
                 }
             } else {
-                auto p = (it_->parent_).lock();
-                if (p) {
-                    it_ = p;
+                auto parent = it_->parent_.lock();
+                while (parent && parent->left_ == it_) {
+                    it_ = parent;
+                    parent = it_->parent_.lock();
+                }
+                if (parent) {
+                    it_ = parent;
                 } else {
                     throw std::runtime_error("Index out of range while decreasing");
                 }
+
             }
         }
         const T Dereferencing() const override {
@@ -280,13 +305,13 @@ private:
         if (root_ == end_) {
             root_ = nullptr;
         }
-        end_->parent_ = std::weak_ptr<Node>();
+        //end_->parent_ = std::weak_ptr<Node>();
     }
 
     //Set begin_ and end_ after modification
     void BLCheck() {
         if (root_ == nullptr) {
-            begin_ = end_;
+            begin_ = root_ = end_;
             return;
         }
         auto node = root_;
@@ -436,6 +461,7 @@ private:
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
             } else {
+                BLCheck();
                 return false;
             }
         }
@@ -492,12 +518,12 @@ private:
             while (swap_node->left_) {
                 swap_node = swap_node->left_;
             }
-            ReplaceNodes(delete_node, swap_node);
-            if (delete_node->right_) {
-                parent = delete_node->parent_.lock();
-                parent->left_ = delete_node->right_;
-                delete_node->right_->parent_ = parent;
-
+            parent = swap_node->parent_.lock();
+            if (swap_node == delete_node->right_) {
+                SwapWithChild(delete_node, swap_node);
+                parent = swap_node;
+            } else {
+                SwapWithOffspring(delete_node, swap_node);
             }
         }
 
@@ -506,55 +532,61 @@ private:
             parent = parent->parent_.lock();
         }
 
+        //When delete the last real node (for iterators)
+        if (end_->parent_.lock() == delete_node) {
+            delete_node->right_ = end_;
+        }
+
         BLCheck();
     }
 
-    void ReplaceNodes(std::shared_ptr<Node>& node1, std::shared_ptr<Node>& node2) {
-        auto node1_parent = (node1->parent_).lock();
-
-        if (node1_parent) {
-            if (node1_parent->left_ == node1) {
-                node1_parent->left_ = node2;
+    //When swap node is child
+    void SwapWithChild(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
+        auto parent = from_node->parent_.lock();
+        if (parent) {
+            if (parent->left_ == from_node) {
+                parent->left_ = swap_node;
             } else {
-                node1_parent->right_ = node2;
+                parent->right_ = swap_node;
             }
-        }
-        auto  node2_parent = node2->parent_.lock();
-        if (node2_parent) {
-            if (node2_parent->left_ == node2) {
-                node2_parent->left_ = node1;
-            } else {
-                node2_parent->right_ = node1;
-            }
-
-        }
-        if (node2_parent == node1) {
-            node2->parent_ = node1->parent_;
-            node1->parent_ = node2;
         } else {
-            auto tmp = node2->parent_;
-            node2->parent_ = node1->parent_;
-            node1->parent_ = tmp;
+            root_ = swap_node;
+        }
+        swap_node->parent_ = parent;
+
+        swap_node->left_ = from_node->left_;
+        if (from_node->left_) {
+            from_node->left_->parent_ = swap_node;
+        }
+    }
+
+    //When swap node is not child
+    void SwapWithOffspring(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
+        auto from_parent = from_node->parent_.lock();
+        if (from_parent) {
+            if (from_parent->left_ == from_node) {
+                from_parent->left_ = swap_node;
+            } else {
+                from_parent->right_ = swap_node;
+            }
+        } else {
+            root_ = swap_node;
         }
 
-        node2->left_ = node1->left_;
-        if (node1->left_) {
-            node1->left_->parent_ = node2;
+        auto swap_parent = swap_node->parent_.lock();
+        swap_parent->left_ = swap_node->right_;
+        if (swap_node->right_) {
+            swap_node->right_->parent_ = swap_parent;
         }
-        node1->left_ = nullptr;
 
-        unsigned char height = node2->height_;
-        node2->height_ = node1->height_;
-        node1->height_ = height;
+        swap_node->parent_ = from_node->parent_;
 
-        auto children = node2->right_;
-        node2->right_ = node1->right_;
-        if (node1->right_) {
-            node1->right_->parent_ = node2;
-        }
-        node1->right_ = children;
-        if (children) {
-            children->parent_ = node1;
+        swap_node->right_ = from_node->right_;
+        from_node->right_->parent_ = swap_node;
+
+        swap_node->left_ = from_node->left_;
+        if (from_node->left_) {
+            from_node->left_->parent_ = swap_node;
         }
     }
 };
