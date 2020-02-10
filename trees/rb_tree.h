@@ -31,16 +31,14 @@ public:
             is_red_ = true;
         }
 
-        explicit Node(const T& value) {
-            value_ = value;
+        explicit Node(const T& value) : value_(value) {
             left_ = nullptr;
             right_ = nullptr;
             parent_ = std::weak_ptr<Node>();
             is_red_ = true;
         }
 
-        Node(const Node& other) {
-            value_ = other.value_;
+        Node(const Node& other) : value_(other.value_) {
             is_red_ = other.is_red_;
             left_ = other.left_;
             right_ = other.right_;
@@ -149,6 +147,7 @@ public:
     }
 
     void Clear() override {
+        end_->parent_ = std::weak_ptr<Node>();
         root_ = end_;
         begin_ = end_;
         size_ = 0;
@@ -205,9 +204,13 @@ private:
                     it_ = it_->right_;
                 }
             } else {
-                auto p = (it_->parent_).lock();
-                if (p) {
-                    it_ = p;
+                auto parent = it_->parent_.lock();
+                while (parent && parent->left_ == it_) {
+                    it_ = parent;
+                    parent = it_->parent_.lock();
+                }
+                if (parent) {
+                    it_ = parent;
                 } else {
                     throw std::runtime_error("Index out of range while decreasing");
                 }
@@ -298,7 +301,7 @@ private:
         if (root_ == end_) {
             root_ = nullptr;
         }
-        end_->parent_ = std::weak_ptr<Node>();
+        //end_->parent_ = std::weak_ptr<Node>();
     }
 
     //Set begin_ and end_ after modification
@@ -499,6 +502,10 @@ private:
             } else {
                 root_ = nullptr;
             }
+            //When delete the last real node (for iterators)
+            if (end_->parent_.lock() == delete_node) {
+                delete_node->right_ = end_;
+            }
             BLCheck();
             return;
             //Node has only 1 child
@@ -520,6 +527,10 @@ private:
                 } else {
                     FixBalance(child_node);
                 }
+            }
+            //When delete the last real node (for iterators)
+            if (end_->parent_.lock() == delete_node) {
+                delete_node->right_ = end_;
             }
             BLCheck();
             return;
@@ -562,6 +573,10 @@ private:
             } else {
                 parent->left_ = nullptr;
             }
+        }
+        //When delete the last real node (for iterators)
+        if (end_->parent_.lock() == delete_node) {
+            delete_node->right_ = end_;
         }
         BLCheck();
     }
