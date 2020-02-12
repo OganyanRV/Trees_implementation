@@ -153,6 +153,26 @@ public:
         size_ = 0;
     }
 
+    void printT(std::ostream& ostr, std::shared_ptr<Node> p, int lvl) const {
+
+        if (p) {
+            printT(ostr, p->left_, lvl + 1);
+            for (int i = 0; i < lvl; i++)
+                ostr << "   ";
+            if (p->value_) {
+                ostr << (p->is_red_ ? 'r' : 'b') << *(p->value_) << '\n';
+            } else
+                ostr << (p->is_red_ ? 'r' : 'b') << "+";
+            printT(ostr, p->right_, lvl + 1);
+        }
+    }
+
+    friend inline std::ostream& operator<<(std::ostream& ostr, const RBTree<T>& tree) {
+        tree.printT(ostr, tree.root_, 0);
+        return ostr;
+    }
+
+
 private:
     std::shared_ptr<Node> begin_;
     std::shared_ptr<Node> end_;
@@ -354,6 +374,9 @@ private:
         }
         new_node->parent_ = cur_node;
         RBBalancing(new_node);
+
+        //std::cout << "\nAdding node: " << new_node->value_.value() << "\n------------------------------------------\n" << *this;
+
         BLCheck();
         return true;
     }
@@ -502,12 +525,12 @@ private:
             } else {
                 root_ = nullptr;
             }
-            //When delete the last real node (for iterators)
-            if (end_->parent_.lock() == delete_node) {
-                delete_node->right_ = end_;
-            }
-            BLCheck();
-            return;
+//            //When delete the last real node (for iterators)
+//            if (end_->parent_.lock() == delete_node) {
+//                delete_node->right_ = end_;
+//            }
+//            BLCheck();
+//            return;
             //Node has only 1 child
         } else if ((delete_node->right_&&!delete_node->left_) || (!delete_node->right_&&delete_node->left_)) {
 
@@ -528,12 +551,12 @@ private:
                     FixBalance(child_node);
                 }
             }
-            //When delete the last real node (for iterators)
-            if (end_->parent_.lock() == delete_node) {
-                delete_node->right_ = end_;
-            }
-            BLCheck();
-            return;
+//            //When delete the last real node (for iterators)
+//            if (end_->parent_.lock() == delete_node) {
+//                delete_node->right_ = end_;
+//            }
+//            BLCheck();
+//            return;
         } else {
             swap_node = delete_node->right_;
 
@@ -543,35 +566,40 @@ private:
             if (swap_node->right_) {
                 swapHasChild = true;
             }
-        }
-        if (delete_node != swap_node) {
-            ReplaceNodes(delete_node, swap_node);
-            if (delete_node == root_) {
-                root_=swap_node;
-            }
-        }
-        if (swapHasChild) {
-            parent = delete_node->parent_.lock();
-
-            if (parent->right_ == delete_node) {
-                parent->right_ = delete_node->right_;
+            if (delete_node->right_ == swap_node) {
+                SwapWithChild(delete_node, swap_node);
             } else {
-                parent->left_ = delete_node->right_;
+                SwapWithOffspring(delete_node, swap_node);
             }
-            delete_node->right_->parent_ = parent;
-            if (!delete_node->right_->is_red_) {
-                FixBalance(delete_node->right_);
-            }
-        } else {
-            parent = delete_node->parent_.lock();
+            //if (delete_node != swap_node) {
+//                ReplaceNodes(delete_node, swap_node);
+//                if (delete_node == root_) {
+//                    root_ = swap_node;
+//                }
+            //}
+            if (swapHasChild) {
+                parent = delete_node->parent_.lock();
 
-            if (!delete_node->is_red_) {
-                FixBalance(delete_node);
-            }
-            if (parent->right_ == delete_node) {
-                parent->right_ = nullptr;
+                if (parent->right_ == delete_node) {
+                    parent->right_ = delete_node->right_;
+                } else {
+                    parent->left_ = delete_node->right_;
+                }
+                delete_node->right_->parent_ = parent;
+                if (!delete_node->right_->is_red_) {
+                    FixBalance(delete_node->right_);
+                }
             } else {
-                parent->left_ = nullptr;
+                parent = delete_node->parent_.lock();
+
+                if (!delete_node->is_red_) {
+                    FixBalance(delete_node);
+                }
+                if (parent->right_ == delete_node) {
+                    parent->right_ = nullptr;
+                } else {
+                    parent->left_ = nullptr;
+                }
             }
         }
         //When delete the last real node (for iterators)
@@ -579,6 +607,78 @@ private:
             delete_node->right_ = end_;
         }
         BLCheck();
+    }
+
+    void SwapWithChild(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
+        auto parent = from_node->parent_.lock();
+        if (parent) {
+            if (parent->left_ == from_node) {
+                parent->left_ = swap_node;
+            } else {
+                parent->right_ = swap_node;
+            }
+        } else {
+            root_ = swap_node;
+        }
+        swap_node->parent_ = parent;
+
+
+
+        from_node->right_ = swap_node->right_;
+        if (swap_node->right_) {
+            swap_node->right_->parent_ = from_node;
+        }
+
+        swap_node->right_ = from_node;
+        from_node->parent_ = swap_node;
+
+
+
+        swap_node->left_ = from_node->left_;
+        if (from_node->left_) {
+            from_node->left_->parent_ = swap_node;
+        }
+
+        from_node->left_ = nullptr;
+    }
+
+    //When swap node is not child
+    void SwapWithOffspring(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
+        auto from_parent = from_node->parent_.lock();
+        if (from_parent) {
+            if (from_parent->left_ == from_node) {
+                from_parent->left_ = swap_node;
+            } else {
+                from_parent->right_ = swap_node;
+            }
+        } else {
+            root_ = swap_node;
+        }
+
+        auto swap_parent = swap_node->parent_.lock();
+        swap_parent->left_ = swap_node->right_;
+        if (swap_node->right_) {
+            swap_node->right_->parent_ = swap_parent;
+        }
+
+        auto tmp_parent = from_node->parent_;
+        from_node->parent_ = swap_node->parent_;
+        swap_node->parent_ = tmp_parent;
+
+        auto tmp_right = swap_node->right_;
+        swap_node->right_ = from_node->right_;
+        from_node->right_->parent_ = swap_node;
+        from_node->right_ = tmp_right;
+        if (from_node->right_) {
+            from_node->right_->parent_ = from_node;
+        }
+
+        swap_node->left_ = from_node->left_;
+        if (from_node->left_) {
+            from_node->left_->parent_ = swap_node;
+        }
+
+        from_node->left_ = nullptr;
     }
 
     void FixBalance(std::shared_ptr<Node> from) {
