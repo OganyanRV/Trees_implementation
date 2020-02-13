@@ -498,7 +498,7 @@ private:
                 }
                 parent->right_ = grandparent;
                 grandparent->parent_ = parent;
-                RBBalancing(parent);
+                //RBBalancing(parent);
                 parent->is_red_ = false;
                 grandparent->is_red_ = true;
                 return;
@@ -506,7 +506,8 @@ private:
         }
     }
 
-    void EraseImplementation(std::shared_ptr<Node> delete_node) {
+
+        void EraseImplementation(std::shared_ptr<Node> delete_node) {
         RemoveLast();
 
         auto parent = delete_node->parent_.lock();
@@ -537,7 +538,7 @@ private:
             child_node = delete_node->right_ ? delete_node->right_ : delete_node->left_;
             if (!parent) {
                 root_ = child_node;
-
+                child_node->parent_ = std::weak_ptr<Node>();
             } else {
                 if(parent->left_ == delete_node) {
                     parent->left_ = child_node;
@@ -545,9 +546,10 @@ private:
                     parent->right_ = child_node;
                 }
                 child_node->parent_ = parent;
-                if (parent->is_red_ && child_node->is_red_) {
-                    child_node->is_red_ = false;
-                } else {
+
+                if (!delete_node->is_red_ && child_node->is_red_ ) {
+                    child_node->is_red_ =  false;
+                } else if  (!delete_node->is_red_ && !child_node->is_red_) {
                     FixBalance(child_node);
                 }
             }
@@ -640,6 +642,10 @@ private:
         }
 
         from_node->left_ = nullptr;
+
+        bool color = swap_node->is_red_;
+        swap_node->is_red_ = from_node->is_red_;
+        from_node->is_red_ = color;
     }
 
     //When swap node is not child
@@ -679,6 +685,10 @@ private:
         }
 
         from_node->left_ = nullptr;
+
+        bool color = swap_node->is_red_;
+        swap_node->is_red_ = from_node->is_red_;
+        from_node->is_red_ = color;
     }
 
     void FixBalance(std::shared_ptr<Node> from) {
