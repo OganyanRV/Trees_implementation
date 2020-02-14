@@ -134,6 +134,7 @@ public:
     }
 
     void Clear() override {
+        end_->right_ = end_->left_ = nullptr;
         end_->parent_ = std::weak_ptr<Node>();
         root_ = end_;
         begin_ = end_;
@@ -296,35 +297,13 @@ private:
         }
     }
 
-    //Remove pointers to end_ when tree is being modified
-    void RemoveLast() {
-        auto parent = end_->parent_.lock();
-        if (parent) {
-            parent->right_ = nullptr;
-        }
-        if (root_ == end_) {
-            root_ = nullptr;
-        }
-        //end_->parent_ = std::weak_ptr<Node>();
-    }
-
     //Set begin_ and end_ after modification
     void BLCheck() {
-        if (root_ == nullptr) {
-            begin_ = root_ = end_;
-            return;
-        }
         auto node = root_;
         while (node->left_) {
             node = node->left_;
         }
         begin_ = node;
-        node = root_;
-        while (node->right_) {
-            node = node->right_;
-        }
-        node->right_ = end_;
-        end_->parent_ = node;
     }
 
     void FixHeight(std::shared_ptr<Node> node) {
@@ -443,8 +422,6 @@ private:
     }
 
     bool InsertImplementation(const std::shared_ptr<Node>& new_node) {
-        RemoveLast();
-
         if (!(root_)) {
             root_ = new_node;
             BLCheck();
@@ -482,8 +459,6 @@ private:
     }
 
     void EraseImplementation(std::shared_ptr<Node> delete_node) {
-        RemoveLast();
-
         auto parent = delete_node->parent_.lock();
         std::shared_ptr<Node> child_node;
 
