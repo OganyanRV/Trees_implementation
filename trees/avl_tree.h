@@ -507,11 +507,6 @@ private:
             parent = parent->parent_.lock();
         }
 
-        //When delete the last real node (for iterators)
-        if (end_->parent_.lock() == delete_node) {
-            delete_node->right_ = end_;
-        }
-
         BLCheck();
     }
 

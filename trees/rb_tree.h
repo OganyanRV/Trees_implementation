@@ -548,9 +548,7 @@ private:
             EraseImplementation(delete_node);
             return;
         }
-        if (end_->parent_.lock() == delete_node) {
-            delete_node->right_ = end_;
-        }
+     
         BLCheck();
     }
 
