@@ -9,7 +9,7 @@
 
 #include "../trees/abstract_tree.h"
 
-// #define RELEASE_BUILD
+#define RELEASE_BUILD
 
 /* Here we're going to write tests for our trees.
  * To add a test you are to write it as a function (e. g. SomeTest())
