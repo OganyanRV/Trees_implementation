@@ -14,7 +14,7 @@ TEST_CASE("Test AVL") {
 
 TEST_CASE("Test Cartesian") {
     TestFramework framework;
-    framework.RunAll(Substr("Cartesian"));
+    //RunAll(Substr("Cartesian"));
 }
 
 TEST_CASE("Test Red-Black") {
@@ -24,5 +24,5 @@ TEST_CASE("Test Red-Black") {
 
 TEST_CASE("Test Splay") {
     TestFramework framework;
-    //framework.RunAll(Substr("Splay"));
+    framework.RunAll(Substr("Splay"));
 }

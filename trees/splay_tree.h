@@ -129,14 +129,14 @@ public:
         return !size_;
     }
 
-    std::shared_ptr<BaseImpl> Find(const T& value) {
+    std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
-        return FindRec(root_, val);
+        return const_cast<SplayTree<T>*>(this)->FindRec(root_, val);
     }
 
-    std::shared_ptr<BaseImpl> LowerBound(const T& value) {
+    std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
-        return LowerBoundRec(root_, value);
+        return const_cast<SplayTree<T>*>(this)->LowerBoundRec(root_, val);
     }
 
     void Insert(const T& value) override {
@@ -225,11 +225,11 @@ private:
             }
         }
 
-        T Dereferencing() const override {
-            if (!it_->value_) {
+        const T Dereferencing() const override {
+            if (it_ && !(it_->value_).has_value()) {
                 throw std::runtime_error("Index out of range on operator*");
             }
-            return *(it_->value_);
+            return (it_->value_).value();
         }
 
         const T* Arrow() const override {
