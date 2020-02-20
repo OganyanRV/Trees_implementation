@@ -5,9 +5,18 @@
 #include <memory>
 #include <optional>
 
-
 template <class T>
 class ITree;
+
+template <class T>
+bool operator<(const std::optional<T>& l, const std::optional<T>& r) {
+    return (l && (!r || *l < *r));
+}
+
+template <class T>
+bool operator>(const std::optional<T>& l, const std::optional<T>& r) {
+    return (!l && (r || *l > *r));
+}
 
 template <class T>
 class SplayTree : public ITree<T> {
@@ -178,7 +187,7 @@ private:
     public:
         SplayTreeItImpl() = delete;
 
-        SplayTreeItImpl(std::shared_ptr<Node> ptr) {
+        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) {
             it_ = ptr;
         }
 
@@ -238,9 +247,15 @@ private:
             }
             return &(*it_->value_);
         }
-    };
 
-    // bool IsEqual(std::shared_ptr<BaseImpl> other) const override;   delat`?
+        bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
+            auto casted = std::dynamic_pointer_cast<SplayTreeItImpl>(other);
+            if (!casted) {
+                return false;
+            }
+            return it_ == casted->it_;
+        }
+    };
 
     std::shared_ptr<BaseImpl> Begin() const override {
         return std::make_shared<SplayTreeItImpl>(begin_);
@@ -289,7 +304,7 @@ private:
     }
 
     bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        if (FindRec(from, value) == end_) {
+        if (FindRec(from, value) == End()) {
             return false;
         }
         from = Merge(from->left_, from->right_);
@@ -470,3 +485,5 @@ private:
         from->parent_ = right;
     }
 };
+}
+;
