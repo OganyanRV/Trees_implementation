@@ -96,6 +96,9 @@ public:
         std::swap(end_, other.end_);
         std::swap(size_, other.size_);
     }
+    CartesianTree(std::shared_ptr<ITree<T>> other)
+        : CartesianTree(*dynamic_cast<CartesianTree<T>*>(other.get())) {
+    }
     CartesianTree& operator=(const CartesianTree& other) {
         if (root_ == other.root_) {
             return *this;
@@ -121,10 +124,7 @@ public:
     }
 
     ~CartesianTree() override {
-        root_ = std::make_shared<Node>();
-        begin_ = root_;
-        end_ = root_;
-        size_ = 0;
+        root_ = begin_ = end_ = nullptr;
     }
 
     [[nodiscard]] size_t Size() const override {
@@ -136,19 +136,19 @@ public:
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
-        return FindRec(root_, val);
+        return FindRecursive(root_, val);
     }
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
         if (val < root_->value_) {
             if (root_->left_) {
-                return LowerBoundRec(root_->left_, val);
+                return LowerBoundRecursive(root_->left_, val);
             } else {
                 return std::make_shared<CartesianTreeItImpl>(root_);
             }
         } else if (root_->value_ < val) {
             if (root_->right_) {
-                return LowerBoundRec(root_->right_, val);
+                return LowerBoundRecursive(root_->right_, val);
             } else {
                 return End();
             }
@@ -159,14 +159,14 @@ public:
 
     void Insert(const T& value) override {
         std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
-        if (InsertRec(root_, new_node)) {
+        if (InsertRecursive(root_, new_node)) {
             ++size_;
         }
         RecalcBeginEnd();
     }
     void Erase(const T& value) override {
         std::optional<T> val(value);
-        if (EraseRec(root_, val)) {
+        if (EraseRecursive(root_, val)) {
             --size_;
         }
         RecalcBeginEnd();
@@ -234,7 +234,7 @@ private:
                 }
             }
         }
-        T Dereferencing() const override {
+        const T Dereferencing() const override {
             if (!it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
@@ -247,7 +247,7 @@ private:
             return &(*it_->value_);
         }
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
-            auto casted = std::static_pointer_cast<CartesianTreeItImpl>(other);
+            auto casted = std::dynamic_pointer_cast<CartesianTreeItImpl>(other);
             if (!casted) {
                 return false;
             }
@@ -273,11 +273,9 @@ private:
     static std::shared_ptr<Node> Merge(std::shared_ptr<Node> lhs, std::shared_ptr<Node> rhs) {
         if (!lhs) {
             return rhs;
-        }
-        if (!rhs) {
+        } else if (!rhs) {
             return lhs;
-        }
-        if (lhs->priority_ < rhs->priority_) {
+        } else if (lhs->priority_ < rhs->priority_) {
             lhs->right_ = Merge(lhs->right_, rhs);
             if (lhs->right_) {
                 lhs->right_->parent_ = lhs;
@@ -326,30 +324,29 @@ private:
         }
     }
 
-    std::shared_ptr<BaseImpl> FindRec(std::shared_ptr<Node> from,
-                                      const std::optional<T>& value) const {
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
+                                            const std::optional<T>& value) const {
         if (!from) {
             return End();
-        }
-        if (value < from->value_) {
-            return FindRec(from->left_, value);
+        } else if (value < from->value_) {
+            return FindRecursive(from->left_, value);
         } else if (from->value_ < value) {
-            return FindRec(from->right_, value);
+            return FindRecursive(from->right_, value);
         } else {
             return std::make_shared<CartesianTreeItImpl>(from);
         }
     }
-    static std::shared_ptr<BaseImpl> LowerBoundRec(std::shared_ptr<Node> from,
-                                                   const std::optional<T>& value) {
+    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
+                                                         const std::optional<T>& value) {
         if (value < from->value_) {
             if (from->left_) {
-                return LowerBoundRec(from->left_, value);
+                return LowerBoundRecursive(from->left_, value);
             } else {
                 return std::make_shared<CartesianTreeItImpl>(from);
             }
         } else if (from->value_ < value) {
             if (from->right_) {
-                return LowerBoundRec(from->right_, value);
+                return LowerBoundRecursive(from->right_, value);
             } else {
                 auto impl = std::make_shared<CartesianTreeItImpl>(from);
                 impl->Increment();
@@ -360,7 +357,7 @@ private:
         }
     }
 
-    static bool InsertRec(std::shared_ptr<Node>& from, std::shared_ptr<Node> new_node) {
+    static bool InsertRecursive(std::shared_ptr<Node>& from, std::shared_ptr<Node> new_node) {
         if (!from) {
             from = new_node;
             return true;
@@ -392,12 +389,12 @@ private:
         } else if ((from->value_ < new_node->value_) || (new_node->value_ < from->value_)) {
             bool result;
             if (new_node->value_ < from->value_) {
-                result = InsertRec(from->left_, new_node);
+                result = InsertRecursive(from->left_, new_node);
                 if (from->left_) {
                     from->left_->parent_ = from;
                 }
             } else {
-                result = InsertRec(from->right_, new_node);
+                result = InsertRecursive(from->right_, new_node);
                 if (from->right_) {
                     from->right_->parent_ = from;
                 }
@@ -406,17 +403,17 @@ private:
         }
         return false;
     }
-    static bool EraseRec(std::shared_ptr<Node>& from, const std::optional<T>& value) {
+    static bool EraseRecursive(std::shared_ptr<Node>& from, const std::optional<T>& value) {
         bool result;
         if (!from) {
             return false;
         } else if (value < from->value_) {
-            result = EraseRec(from->left_, value);
+            result = EraseRecursive(from->left_, value);
             if (from->left_) {
                 from->left_->parent_ = from;
             }
         } else if (from->value_ < value) {
-            result = EraseRec(from->right_, value);
+            result = EraseRecursive(from->right_, value);
             if (from->right_) {
                 from->right_->parent_ = from;
             }

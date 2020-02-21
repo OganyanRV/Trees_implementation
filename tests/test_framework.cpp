@@ -12,6 +12,11 @@ using std::cout;
 class TestFramework {
 public:
     TestFramework() {
+#ifdef RELEASE_BUILD
+        cout << "Test framework started at release build\n\n";
+#else
+        cout << "Test framework started at debug build\n\n";
+#endif
         // All types of trees are listed below.
         types_.emplace("AVL tree", ImplType::kAVL);
         types_.emplace("Cartesian tree", ImplType::kCartesian);
@@ -27,9 +32,13 @@ public:
         tests_.emplace("!_emptiness_test", EmptinessTest);
         tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
         tests_.emplace("!_empty_copying_test", EmptyCopyingTest);
-        tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
-        tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
-        tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
+        tests_.emplace("!_few_elements_test", FewElementsTest);
+        tests_.emplace("!_few_elements_iterator_test", FewElementsIteratorTest);
+        tests_.emplace("!_few_elements_copying_test", FewElementsCopyingTest);
+        tests_.emplace("!_strange_test", StrangeTest);
+        tests_.emplace("!_strange_copy_test", StrangeCopyTest);
+        tests_.emplace("!_find_and_lower_bound_test", FindAndLBTest);
+        tests_.emplace("!_insert_and_erase_test", InsertAndEraseTest);
     }
 
     template <class TreePredicate>
@@ -41,8 +50,15 @@ public:
         for (auto &type : types_) {
             if (tree_predicate(type.first)) {
                 cout << "Running " << it->first << " on " << type.first << ": ";
-                it->second(type.second);
-                cout << "Success!\n\n";
+                try {
+                    it->second(type.second);
+                    cout << "Success!\n\n";
+                } catch (std::exception &ex) {
+                    cout << "Failure: " << ex.what() << "\n\n";
+                } catch (...) {
+                    cout << "Failure: Unknown exception. PLEASE THROW \"std::exception\" BASED "
+                            "EXCEPTIONS\n\n";
+                }
             }
         }
     }
@@ -64,8 +80,15 @@ public:
                 cout << "Running " << test.first << " on some trees:\n";
                 for (auto &tree : trees_for_tests) {
                     cout << tree.first << ": ";
-                    test.second(tree.second);
-                    cout << "Success!\n";
+                    try {
+                        test.second(tree.second);
+                        cout << "Success!\n";
+                    } catch (std::exception &ex) {
+                        cout << "Failure: " << ex.what() << "\n";
+                    } catch (...) {
+                        cout << "Failure: Unknown exception. PLEASE THROW \"std::exception\" BASED "
+                                "EXCEPTIONS\n";
+                    }
                 }
                 cout << "Test passed!\n\n";
             }
@@ -98,7 +121,7 @@ public:
         return result;
     }
 
-    std::vector<std::string> ShowAllTests() const {
+    [[nodiscard]] std::vector<std::string> ShowAllTests() const {
         std::vector<std::string> result;
         for (const auto &test : tests_) {
             result.emplace_back(test.first);

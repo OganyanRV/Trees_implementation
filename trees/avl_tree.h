@@ -19,6 +19,8 @@ public:
 
     AVLTree(const AVLTree &other);
     AVLTree(AVLTree &&other) noexcept;
+    AVLTree(std::shared_ptr<ITree<T>> other) : AVLTree(*dynamic_cast<AVLTree<T> *>(other.get())) {
+    }
     AVLTree &operator=(const AVLTree &other);
     AVLTree &operator=(AVLTree &&other) noexcept;
 
@@ -48,7 +50,7 @@ public:
         std::shared_ptr<BaseImpl> Clone() const override;
         void Increment() override;
         void Decrement() override;
-        T Dereferencing() const override;
+        const T Dereferencing() const override;
         const T *Arrow() const override;
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override;
     };
