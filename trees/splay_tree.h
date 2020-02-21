@@ -37,18 +37,16 @@ public:
             value_ = std::nullopt;
         }
 
-        explicit Node(const T& value) {
+        explicit Node(const T& value) : value_(value) {
             left_ = nullptr;
             parent_ = std::weak_ptr<Node>();
             right_ = nullptr;
-            value_ = value;
         }
 
-        Node(const Node& other) {
+        Node(const Node& other) : value_(other.value_) {
             left_ = other.left_;
             parent_ = other.parent_;
             right_ = other.right_;
-            value_ = other.value_;
         }
 
         std::shared_ptr<Node> left_;
@@ -275,7 +273,7 @@ private:
         }
         if (value < from->value_) {
             return FindRec(from->left_, value);
-        } else if (value > from->value_) {
+        } else if (from->value_ < value) {
             return FindRec(from->right_, value);
         } else {
             Splay(from);
@@ -321,9 +319,6 @@ private:
         bool f = true;
         auto tmp = std::shared_ptr<Node>(from);
         while (f) {
-            if (new_node->value_ == tmp->value_) {
-                return false;
-            }
             if (new_node->value_ < tmp->value_) {
                 if (tmp->left_) {
                     tmp = tmp->left_;
@@ -342,6 +337,9 @@ private:
                     tmp = tmp->right_;
                     f = false;
                 }
+            }
+            else {
+                return false;
             }
         }
         Splay(tmp);
