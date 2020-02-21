@@ -5,9 +5,8 @@
 #include <memory>
 #include <optional>
 
-template <class T>
-class ITree;
 
+/*
 template <class T>
 bool operator<(const std::optional<T>& l, const std::optional<T>& r) {
     return (l && (!r || *l < *r));
@@ -18,6 +17,12 @@ bool operator>(const std::optional<T>& l, const std::optional<T>& r) {
     return (!l && (r || *l > *r));
 }
 
+template <class T>
+std::ostream& operator<<(std::ostream& out, const std::optional<T>& lol) {
+    out << lol.value();
+    return out;
+}
+*/
 template <class T>
 class SplayTree : public ITree<T> {
 private:
@@ -66,7 +71,7 @@ public:
         root_ = nullptr;
         size_ = 0;
         for (InitIterator cur(begin); cur != end; ++cur) {
-            insert(*cur);
+            Insert(*cur);
         }
     }
 
@@ -87,7 +92,7 @@ public:
     }
 
     SplayTree(SplayTree&& other) noexcept
-        : SplayTree() {  //Первоначально был Сваппер, но ебля с rvalue lvalue
+        : SplayTree() {  //пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ rvalue lvalue
         std::swap(root_, other.root_);
         std::swap(begin_, other.begin_);
         std::swap(end_, other.end_);
@@ -95,8 +100,7 @@ public:
     }
 
     SplayTree(std::shared_ptr<ITree<T>> other)
-        : SplayTree(*dynamic_cast<SplayTree<T>*>(other.get())) {
-    }
+        : SplayTree(*dynamic_cast<SplayTree<T>*>(other.get())) {}
 
     SplayTree& operator=(const SplayTree& other) {
         if (root_ == other.root_) {
@@ -130,13 +134,9 @@ public:
         size_ = 0;
     }
 
-    [[nodiscard]] size_t Size() const override {
-        return size_;
-    }
+    [[nodiscard]] size_t Size() const override { return size_; }
 
-    [[nodiscard]] bool Empty() const override {
-        return !size_;
-    }
+    [[nodiscard]] bool Empty() const override { return !size_; }
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
@@ -150,7 +150,8 @@ public:
 
     void Insert(const T& value) override {
         std::optional<T> val(value);
-        if (InsertImpl(root_, val)) {
+        std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
+        if (InsertImpl(root_, new_node)) {
             ++size_;
         }
     }
@@ -162,12 +163,14 @@ public:
         }
     }
 
-    void Clear() override {  // где он нужен?
+    void Clear() override {  // пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ?
         root_ = std::make_shared<Node>();
         begin_ = root_;
         end_ = root_;
         size_ = 0;
     }
+
+    void pprint() { printq(); }
 
 private:
     std::shared_ptr<Node> begin_;
@@ -187,13 +190,9 @@ private:
     public:
         SplayTreeItImpl() = delete;
 
-        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) {
-            it_ = ptr;
-        }
+        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) { it_ = ptr; }
 
-        SplayTreeItImpl(const SplayTreeItImpl& other) {
-            it_ = other.it_;
-        }
+        SplayTreeItImpl(const SplayTreeItImpl& other) { it_ = other.it_; }
 
         std::shared_ptr<BaseImpl> Clone() const override {
             return std::make_shared<SplayTreeItImpl>(*this);
@@ -269,7 +268,8 @@ private:
         return std::make_shared<SplayTreeItImpl>(root_);
     }
 
-    std::shared_ptr<BaseImpl> FindRec(std::shared_ptr<Node> from, const std::optional<T>& value) {
+    std::shared_ptr<BaseImpl> FindRec(std::shared_ptr<Node> from,
+                                      const std::optional<T>& value) {
         if (!from) {
             return End();
         }
@@ -283,7 +283,8 @@ private:
         }
     }
 
-    std::shared_ptr<Node> Merge(std::shared_ptr<Node> l, std::shared_ptr<Node> r) {
+    std::shared_ptr<Node> Merge(std::shared_ptr<Node> l,
+                                std::shared_ptr<Node> r) {
         if (!r) {
             return l;
         } else if (!l) {
@@ -312,39 +313,32 @@ private:
     }
 
     bool InsertImpl(std::shared_ptr<Node> from,
-                    const std::optional<T>& value) {  // сделать инсерт рекурсией
+                    std::shared_ptr<Node> new_node) {  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         if (!from) {
-            from->left_ = nullptr;
-            from->right_ = nullptr;
-            from->parent_ = std::weak_ptr<Node>();
-            from->value_ = value;
+            root_ = new_node;
             return true;
         }
         bool f = true;
         auto tmp = std::shared_ptr<Node>(from);
         while (f) {
-            if (value == tmp->value_) {
+            if (new_node->value_ == tmp->value_) {
                 return false;
             }
-            if (value < tmp->value_) {
+            if (new_node->value_ < tmp->value_) {
                 if (tmp->left_) {
                     tmp = tmp->left_;
                 } else {
-                    tmp->left_->left_ = nullptr;
-                    tmp->left_->right_ = nullptr;
-                    tmp->left_->parent_ = tmp;
-                    tmp->left_->value_ = value;
+                    new_node->parent_ = tmp;
+                    tmp->left_ = new_node;
                     tmp = tmp->left_;
                     f = false;
                 }
-            } else if (value > tmp->value_) {
+            } else if (tmp->value_ < new_node->value_) {
                 if (tmp->right_) {
                     tmp = tmp->right_;
                 } else {
-                    tmp->right_->left_ = nullptr;
-                    tmp->right_->right_ = nullptr;
-                    tmp->right_->parent_ = tmp;
-                    tmp->right_->value_ = value;
+                    new_node->parent_ = tmp;
+                    tmp->right_ = new_node;
                     tmp = tmp->right_;
                     f = false;
                 }
@@ -386,28 +380,14 @@ private:
         while (tmp->right_) {
             tmp = tmp->right_;
         }
-        tmp->right_ = end_;
-        end_->parent_ = tmp;
-    }
-
-    void RemoveEnd() {
-        std::shared_ptr<Node> tmp(end_->parent_.lock());
-        if (tmp) {
-            tmp->right_ = nullptr;
-            end_->parent_ = std::weak_ptr<Node>();
-        }
-        if (root_ == end_) {
-            root_ = nullptr;
-        }
+        end_ = tmp;
     }
 
     void Splay(std::shared_ptr<Node> from) {  // parpar = grandpa
-        RemoveEnd();
         std::shared_ptr<Node> par = from->parent_.lock();
-        bool f = true;
-        while (f) {
+        while (true) {
             if (!par) {
-                f = false;
+                break;
             }
             std::shared_ptr<Node> parpar = par->parent_.lock();
             if (!parpar)  // It is a Zig`s case
@@ -417,7 +397,7 @@ private:
                 } else {
                     RightRotate(par);
                 }
-                f = false;
+                break;
             }
             if (parpar->right_ == par) {
                 if (par->right_ == from) {  // ZigZag
@@ -484,6 +464,26 @@ private:
         }
         from->parent_ = right;
     }
+
+    void printq() {
+        auto it = begin_;
+        while (it != end_) {
+            std::cout << it->value_;
+            std::cout << " ";
+            if (it->right_) {
+                it = it->right_;
+                std::cout << it->value_;
+                while (it->left_) {
+                    it = it->left_;
+                    std::cout << it->value_;
+                }
+            } else {
+                while (it->parent_.lock()->right_ == it) {
+                    it = it->parent_.lock();
+                    std::cout << it->value_;
+                }
+                it = it->parent_.lock();
+            }
+        }
+    }
 };
-}
-;
