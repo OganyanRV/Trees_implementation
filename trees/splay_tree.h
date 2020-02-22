@@ -153,7 +153,7 @@ public:
         }
     }
 
-    void Clear() override {  // ��� �� �����?
+    void Clear() override {  
         root_ = std::make_shared<Node>();
         begin_ = root_;
         end_ = root_;
@@ -303,7 +303,7 @@ private:
     }
 
     bool InsertImpl(std::shared_ptr<Node> from,
-                    std::shared_ptr<Node> new_node) {  // ������� ������ ���������
+                    std::shared_ptr<Node> new_node) {  
         if (!from) {
             root_ = new_node;
             return true;
@@ -367,7 +367,7 @@ private:
         begin_ = tmp;
     }
 
-    void Splay(std::shared_ptr<Node> from) {  // parpar = grandpa
+    void Splay(std::shared_ptr<Node> from) {  
         while (true) {
             std::shared_ptr<Node> par = from->parent_.lock();
             if (!par) {
