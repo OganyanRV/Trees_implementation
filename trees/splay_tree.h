@@ -44,28 +44,18 @@ public:
     };
 
     SplayTree() {
-        begin_ = nullptr;
-        end_ = nullptr;
-        root_ = nullptr;
+        begin_ = root_=end_=std::make_shared<Node>();
         size_ = 0;
     }
 
     template <class InitIterator>
-    SplayTree(InitIterator begin, InitIterator end) {
-        begin_ = nullptr;
-        end_ = nullptr;
-        root_ = nullptr;
-        size_ = 0;
+    SplayTree(InitIterator begin, InitIterator end) : SplayTree(){
         for (InitIterator cur(begin); cur != end; ++cur) {
             Insert(*cur);
         }
     }
 
-    SplayTree(std::initializer_list<T> list) {
-        begin_ = nullptr;
-        end_ = nullptr;
-        root_ = nullptr;
-        size_ = 0;
+    SplayTree(std::initializer_list<T> list) : SplayTree() {
         for (const T& value : list) {
             Insert(value);
         }
@@ -151,6 +141,17 @@ public:
         if (EraseImpl(root_, value)) {
             --size_;
         }
+
+
+/*
+        std::shared_ptr<SplayTreeItImpl> find = std::static_pointer_cast<SplayTreeItImpl>(Find(value));
+        if (find->IsEqual(End())) {
+            return;
+        }
+        EraseImpl(find->GetPointer());
+        --size_;
+        */
+
     }
 
     void Clear() override {  
@@ -214,7 +215,7 @@ private:
                     it_ = it_->right_;
                 }
             } else {
-                while (it_->parent_.lock()->left_ == it_ && it_->parent_.lock()) {
+                while (it_->parent_.lock() && it_->parent_.lock()->left_ == it_  ) {
                     it_ = it_->parent_.lock();
                 }
                 if (it_->parent_.lock()) {
@@ -229,7 +230,7 @@ private:
             if (it_ && !(it_->value_).has_value()) {
                 throw std::runtime_error("Index out of range on operator*");
             }
-            return (it_->value_).value();
+            return *(it_->value_);
         }
 
         const T* Arrow() const override {
@@ -246,6 +247,10 @@ private:
             }
             return it_ == casted->it_;
         }
+        std::shared_ptr<Node> GetPointer() {
+            return it_;
+        }
+
     };
 
     std::shared_ptr<BaseImpl> Begin() const override {
@@ -295,11 +300,27 @@ private:
     }
 
     bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        if (FindRec(from, value) == End()) {
+        /*
+         * if (FindRec(from, value) == End()) {
             return false;
         }
         from = Merge(from->left_, from->right_);
         return true;
+         */
+        bool result;
+        if (!from) {
+            return false;
+        } else if (value < from->value_) {
+            result = EraseImpl(from->left_, value);
+        } else if (from->value_ < value) {
+            result = EraseImpl(from->right_, value);
+        } else {
+            Splay(from);
+            root_ = Merge(root_->left_, root_->right_);
+            return true;
+        }
+        return result;
+
     }
 
     bool InsertImpl(std::shared_ptr<Node> from,
