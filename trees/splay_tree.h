@@ -82,9 +82,9 @@ public:
         if (root_ == other.root_) {
             return *this;
         }
-        end_ = std::make_shared<Node>();
-        root_ = end_;
-        begin_ = end_;
+        root_ = std::make_shared<Node>();
+        begin_ = root_;
+        end_ = root_;
         size_ = 0;
         for (const T& value : other) {
             Insert(value);
@@ -104,9 +104,9 @@ public:
     }
 
     ~SplayTree() override {
-        root_ = std::make_shared<Node>();
-        begin_ = root_;
-        end_ = root_;
+        root_ = nullptr;
+        begin_ = nullptr;
+        end_ = nullptr;
         size_ = 0;
     }
 
@@ -134,6 +134,7 @@ public:
         if (InsertImpl(root_, new_node)) {
             ++size_;
         }
+        UpdateBeg();
     }
 
     void Erase(const T& value) override {
@@ -236,6 +237,8 @@ private:
             }
         }
 
+
+
         const T Dereferencing() const override {
             if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
@@ -336,7 +339,7 @@ private:
     }
 
     bool InsertImpl(std::shared_ptr<Node> from,
-                    std::shared_ptr<Node> new_node) {  
+                    std::shared_ptr<Node> new_node) {
         if (!from) {
             root_ = new_node;
             return true;
@@ -417,20 +420,20 @@ private:
                 break;
             }
             if (grandpar->right_ == par) {
-                if (par->right_ == from) {  // ZigZag
-                    LeftRotate(par);
+                if (par->right_ == from) {  // ZigZig
                     LeftRotate(grandpar);
-                } else {  // ZigZig
+                    LeftRotate(par);
+                } else {  // ZigZag
                     RightRotate(par);
                     LeftRotate(grandpar);
                 }
             } else {
-                if (grandpar->right_ == from) {  // ZigZig
+                if (par->right_ == from) {  // ZigZag
                     LeftRotate(par);
                     RightRotate(grandpar);
-                } else {  // ZigZag
-                    RightRotate(par);
+                } else {  // ZigZig
                     RightRotate(grandpar);
+                    RightRotate(par);
                 }
             }
         }
