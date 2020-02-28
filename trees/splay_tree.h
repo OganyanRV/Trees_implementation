@@ -201,10 +201,20 @@ private:
                     it_ = it_->left_;
                 }
             } else {
+                auto p = (it_->parent_).lock();
+                while (p && (p->right_ == it_)) {
+                    it_ = p;
+                    p = (it_->parent_).lock();
+                }
+                if (!(it_->parent_).expired()) {
+                    it_ = (it_->parent_).lock();
+                }
+                /*
                 while (it_->parent_.lock() && it_->parent_.lock()->right_ == it_) {
                     it_ = it_->parent_.lock();
                 }
                 it_ = it_->parent_.lock();
+                */
             }
         }
 
@@ -227,14 +237,15 @@ private:
         }
 
         const T Dereferencing() const override {
-            if (it_ && !(it_->value_).has_value()) {
+            if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
             return *(it_->value_);
+
         }
 
         const T* Arrow() const override {
-            if (!it_->value_) {
+            if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
             return &(*it_->value_);
@@ -317,6 +328,7 @@ private:
         } else {
             Splay(from);
             root_ = Merge(root_->left_, root_->right_);
+            UpdateBeg();
             return true;
         }
         return result;
