@@ -5,12 +5,6 @@
 #include <memory>
 #include <optional>
 
-/*
-template <class T>
-bool operator<(const std::optional<T>& l, const std::optional<T>& r) {
-    return (l && (!r || *l < *r));
-}
-*/
 template <class T>
 class SplayTree : public ITree<T> {
 private:
@@ -44,12 +38,12 @@ public:
     };
 
     SplayTree() {
-        begin_ = root_=end_=std::make_shared<Node>();
+        begin_ = root_ = end_ = std::make_shared<Node>();
         size_ = 0;
     }
 
     template <class InitIterator>
-    SplayTree(InitIterator begin, InitIterator end) : SplayTree(){
+    SplayTree(InitIterator begin, InitIterator end) : SplayTree() {
         for (InitIterator cur(begin); cur != end; ++cur) {
             Insert(*cur);
         }
@@ -134,7 +128,6 @@ public:
         if (InsertImpl(root_, new_node)) {
             ++size_;
         }
-        UpdateBeg();
     }
 
     void Erase(const T& value) override {
@@ -142,20 +135,9 @@ public:
         if (EraseImpl(root_, value)) {
             --size_;
         }
-
-
-/*
-        std::shared_ptr<SplayTreeItImpl> find = std::static_pointer_cast<SplayTreeItImpl>(Find(value));
-        if (find->IsEqual(End())) {
-            return;
-        }
-        EraseImpl(find->GetPointer());
-        --size_;
-        */
-
     }
 
-    void Clear() override {  
+    void Clear() override {
         root_ = std::make_shared<Node>();
         begin_ = root_;
         end_ = root_;
@@ -202,20 +184,10 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                auto p = (it_->parent_).lock();
-                while (p && (p->right_ == it_)) {
-                    it_ = p;
-                    p = (it_->parent_).lock();
-                }
-                if (!(it_->parent_).expired()) {
-                    it_ = (it_->parent_).lock();
-                }
-                /*
                 while (it_->parent_.lock() && it_->parent_.lock()->right_ == it_) {
                     it_ = it_->parent_.lock();
                 }
                 it_ = it_->parent_.lock();
-                */
             }
         }
 
@@ -226,7 +198,7 @@ private:
                     it_ = it_->right_;
                 }
             } else {
-                while (it_->parent_.lock() && it_->parent_.lock()->left_ == it_  ) {
+                while (it_->parent_.lock() && it_->parent_.lock()->left_ == it_) {
                     it_ = it_->parent_.lock();
                 }
                 if (it_->parent_.lock()) {
@@ -237,14 +209,11 @@ private:
             }
         }
 
-
-
         const T Dereferencing() const override {
             if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
             return *(it_->value_);
-
         }
 
         const T* Arrow() const override {
@@ -264,7 +233,6 @@ private:
         std::shared_ptr<Node> GetPointer() {
             return it_;
         }
-
     };
 
     std::shared_ptr<BaseImpl> Begin() const override {
@@ -314,13 +282,6 @@ private:
     }
 
     bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        /*
-         * if (FindRec(from, value) == End()) {
-            return false;
-        }
-        from = Merge(from->left_, from->right_);
-        return true;
-         */
         bool result;
         if (!from) {
             return false;
@@ -335,11 +296,9 @@ private:
             return true;
         }
         return result;
-
     }
 
-    bool InsertImpl(std::shared_ptr<Node> from,
-                    std::shared_ptr<Node> new_node) {
+    bool InsertImpl(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
         if (!from) {
             root_ = new_node;
             return true;
@@ -403,7 +362,7 @@ private:
         begin_ = tmp;
     }
 
-    void Splay(std::shared_ptr<Node> from) {  
+    void Splay(std::shared_ptr<Node> from) {
         while (true) {
             std::shared_ptr<Node> par = from->parent_.lock();
             if (!par) {
