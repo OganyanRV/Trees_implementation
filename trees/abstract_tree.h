@@ -5,6 +5,7 @@
 #include "avl_tree.h"
 #include "cartesian_tree.h"
 #include "rb_tree.h"
+#include "skip_list.h"
 #include "splay_tree.h"
 
 template <class T>
