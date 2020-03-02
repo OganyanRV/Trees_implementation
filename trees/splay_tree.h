@@ -122,8 +122,7 @@ public:
         return const_cast<SplayTree<T>*>(this)->LowerBoundRec(root_, val);
     }
 
-    void Insert(const T& value) override {
-        std::optional<T> val(value);
+    void Insert(const T& value) override {       
         std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
         if (InsertImpl(root_, new_node)) {
             ++size_;
@@ -230,9 +229,7 @@ private:
             }
             return it_ == casted->it_;
         }
-        std::shared_ptr<Node> GetPointer() {
-            return it_;
-        }
+        
     };
 
     std::shared_ptr<BaseImpl> Begin() const override {
@@ -246,6 +243,7 @@ private:
     std::shared_ptr<BaseImpl> Root() const {
         return std::make_shared<SplayTreeItImpl>(root_);
     }
+
 
     std::shared_ptr<BaseImpl> FindRec(std::shared_ptr<Node> from, const std::optional<T>& value) {
         if (!from) {
@@ -261,41 +259,39 @@ private:
         }
     }
 
-    std::shared_ptr<Node> Merge(std::shared_ptr<Node> l, std::shared_ptr<Node> r) {
-        if (!r) {
-            return l;
-        } else if (!l) {
-            return r;
-        } else if (l < r) {
-            l->right_ = Merge(l->right_, r);
-            if (l->right_) {
-                l->right_->parent_ = l;
+    std::shared_ptr<Node> Merge(std::shared_ptr<Node> left_subtree, std::shared_ptr<Node> right_subtree) {
+        if (!right_subtree) {
+            return left_subtree;
+        } else if (!left_subtree) {
+            return right_subtree;
+        } else if (left_subtree < right_subtree) {
+            left_subtree->right_ = Merge(left_subtree->right_, right_subtree);
+            if (left_subtree->right_) {
+                left_subtree->right_->parent_ = left_subtree;
             }
-            return l;
+            return left_subtree;
         } else {
-            r->left_ = Merge(l, r->left_);
-            if (r->left_) {
-                r->left_->parent_ = r;
+            right_subtree->left_ = Merge(left_subtree, right_subtree->left_);
+            if (right_subtree->left_) {
+                right_subtree->left_->parent_ = right_subtree;
             }
-            return r;
+            return right_subtree;
         }
     }
 
     bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        bool result;
         if (!from) {
             return false;
         } else if (value < from->value_) {
-            result = EraseImpl(from->left_, value);
+            return EraseImpl(from->left_, value);
         } else if (from->value_ < value) {
-            result = EraseImpl(from->right_, value);
+            return EraseImpl(from->right_, value);
         } else {
             Splay(from);
             root_ = Merge(root_->left_, root_->right_);
             UpdateBeg();
             return true;
         }
-        return result;
     }
 
     bool InsertImpl(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
