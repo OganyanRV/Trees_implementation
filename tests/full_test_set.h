@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -191,6 +192,10 @@ void EmptyIteratorsTest(ImplType type) {
         auto it = tree->begin();
         REQUIRE_THROWS_AS(it++, std::exception);
     }
+    {
+        auto it = tree->end();
+        REQUIRE_THROWS_AS(++it, std::exception);
+    }
     REQUIRE(tree->empty());
 }
 
@@ -234,6 +239,35 @@ void FewElementsIteratorTest(ImplType type) {
         REQUIRE(set == tree);
         REQUIRE(tree->find(10) == tree->end());
         REQUIRE(tree->lower_bound(0) == tree->begin());
+    }
+    {
+        std::vector<int> fill = {3, 4, 2, 5, 1};
+        std::set<int> set(fill.begin(), fill.end());
+        auto tree = MakeTree<int>(type, fill.begin(), fill.end());
+        auto it = tree->end();
+        REQUIRE_THROWS_AS(*it, std::exception);
+        REQUIRE_THROWS_AS(it++, std::exception);
+        it = tree->begin();
+        REQUIRE_THROWS_AS(--it, std::exception);
+    }
+    {
+        std::vector<std::pair<std::string, int>> fill = {
+            {"one", 1}, {"two", 2}, {"three", 3}, {"four", 4}};
+        std::set<std::pair<std::string, int>> set(fill.begin(), fill.end());
+        auto tree = MakeTree<std::pair<std::string, int>>(type, fill.begin(), fill.end());
+        auto it = tree->begin();
+        REQUIRE(it->first == "four");
+        REQUIRE(it->second == 4);
+        ++it, ++it;
+        REQUIRE(it->first == "three");
+        REQUIRE(it->second == 3);
+        it = tree->begin();
+        REQUIRE_THROWS_AS(it--, std::exception);
+        it = tree->end();
+        REQUIRE_THROWS_AS(*it, std::exception);
+        REQUIRE_THROWS_AS(it->first, std::exception);
+        REQUIRE_THROWS_AS(it->second, std::exception);
+        REQUIRE_THROWS_AS(++it, std::exception);
     }
     {
         auto tree = MakeTree<std::pair<int, int>, std::initializer_list<std::pair<int, int>>>(
