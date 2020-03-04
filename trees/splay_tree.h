@@ -6,6 +6,14 @@
 #include <optional>
 
 template <class T>
+class ITree;
+
+template <class T>
+bool operator<(const std::optional<T>& lhs, const std::optional<T>& rhs) {
+    return (lhs && (!rhs || *lhs < *rhs));
+}
+
+template <class T>
 class SplayTree : public ITree<T> {
 private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
@@ -61,7 +69,7 @@ public:
         }
     }
 
-    SplayTree(SplayTree&& other) noexcept : SplayTree() {  // Maybe should make Swapfun
+    SplayTree(SplayTree&& other) noexcept : SplayTree() {
         std::swap(root_, other.root_);
         std::swap(begin_, other.begin_);
         std::swap(end_, other.end_);
@@ -114,12 +122,12 @@ public:
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
-        return const_cast<SplayTree<T>*>(this)->FindRec(root_, val);
+        return const_cast<SplayTree<T>*>(this)->FindRecursive(root_, val);
     }
 
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
-        return const_cast<SplayTree<T>*>(this)->LowerBoundRec(root_, val);
+        return const_cast<SplayTree<T>*>(this)->LowerBoundRecursive(root_, val);
     }
 
     void Insert(const T& value) override {       
@@ -161,13 +169,9 @@ private:
     public:
         SplayTreeItImpl() = delete;
 
-        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) {
-            it_ = ptr;
-        }
+        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) : it_(ptr) {}
 
-        SplayTreeItImpl(const SplayTreeItImpl& other) {
-            it_ = other.it_;
-        }
+        SplayTreeItImpl(const SplayTreeItImpl& other) : it_(other.it_) {}
 
         std::shared_ptr<BaseImpl> Clone() const override {
             return std::make_shared<SplayTreeItImpl>(*this);
@@ -183,10 +187,13 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                while (it_->parent_.lock() && it_->parent_.lock()->right_ == it_) {
-                    it_ = it_->parent_.lock();
+                auto parent = it_->parent_.lock();
+                while (parent && (parent->right_ == it_)) {
+                    it_ = parent;
+                    parent = it_->parent_.lock();
                 }
-                it_ = it_->parent_.lock();
+
+                it_ = parent;
             }
         }
 
@@ -197,11 +204,13 @@ private:
                     it_ = it_->right_;
                 }
             } else {
-                while (it_->parent_.lock() && it_->parent_.lock()->left_ == it_) {
-                    it_ = it_->parent_.lock();
+                auto parent = it_->parent_.lock();
+                while (parent && parent->left_ == it_) {
+                    it_ = parent;
+                    parent = it_->parent_.lock();
                 }
-                if (it_->parent_.lock()) {
-                    it_ = it_->parent_.lock();
+                if (parent) {
+                    it_ = parent;
                 } else {
                     throw std::runtime_error("Index out of range while decreasing");
                 }
@@ -209,14 +218,14 @@ private:
         }
 
         const T Dereferencing() const override {
-            if (it_ && !it_->value_) {
+            if (!it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
             return *(it_->value_);
         }
 
         const T* Arrow() const override {
-            if (it_ && !it_->value_) {
+            if (!it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
             return &(*it_->value_);
@@ -240,22 +249,17 @@ private:
         return std::make_shared<SplayTreeItImpl>(end_);
     }
 
-    std::shared_ptr<BaseImpl> Root() const {
-        return std::make_shared<SplayTreeItImpl>(root_);
-    }
-
-
-    std::shared_ptr<BaseImpl> FindRec(std::shared_ptr<Node> from, const std::optional<T>& value) {
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const std::optional<T>& value) {
         if (!from) {
             return End();
         }
         if (value < from->value_) {
-            return FindRec(from->left_, value);
+            return FindRecursive(from->left_, value);
         } else if (from->value_ < value) {
-            return FindRec(from->right_, value);
+            return FindRecursive(from->right_, value);
         } else {
             Splay(from);
-            return Root();
+            return std::make_shared<SplayTreeItImpl>(root_);
         }
     }
 
@@ -289,7 +293,7 @@ private:
         } else {
             Splay(from);
             root_ = Merge(root_->left_, root_->right_);
-            UpdateBeg();
+            UpdateBegin();
             return true;
         }
     }
@@ -328,17 +332,17 @@ private:
         return true;
     }
 
-    std::shared_ptr<BaseImpl> LowerBoundRec(std::shared_ptr<Node> from,
+    std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
                                             const std::optional<T>& value) {
         if (value < from->value_) {
             if (from->left_) {
-                return LowerBoundRec(from->left_, value);
+                return LowerBoundRecursive(from->left_, value);
             } else {
                 return std::make_shared<SplayTreeItImpl>(from);
             }
         } else if (from->value_ < value) {
             if (from->right_) {
-                return LowerBoundRec(from->right_, value);
+                return LowerBoundRecursive(from->right_, value);
             } else {
                 Splay(from);
                 auto tmp = std::make_shared<SplayTreeItImpl>(from);
@@ -350,7 +354,7 @@ private:
         }
     }
 
-    void UpdateBeg() {
+    void UpdateBegin() {
         std::shared_ptr<Node> tmp(root_);
         while (tmp->left_) {
             tmp = tmp->left_;
@@ -365,7 +369,7 @@ private:
                 break;
             }
             std::shared_ptr<Node> grandpar = par->parent_.lock();
-            if (!grandpar)  // It is a Zig`s case
+            if (!grandpar)  // Zig
             {
                 if (par->right_ == from) {
                     LeftRotate(par);
@@ -393,7 +397,7 @@ private:
             }
         }
         root_ = from;
-        UpdateBeg();
+        UpdateBegin();
     }
 
     void RightRotate(std::shared_ptr<Node>& from) {
