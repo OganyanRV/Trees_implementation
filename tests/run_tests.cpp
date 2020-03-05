@@ -29,7 +29,7 @@ TEST_CASE("Test Skip list") {
 
 TEST_CASE("Test Splay") {
     TestFramework framework;
-    // framework.RunAll(Substr("Splay"));
+    framework.RunAll(Substr("Splay"));
 }
 
 TEST_CASE("Test All") {

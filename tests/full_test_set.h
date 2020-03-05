@@ -10,7 +10,7 @@
 
 #include "../trees/abstract_tree.h"
 
-#define RELEASE_BUILD
+// #define RELEASE_BUILD
 
 /* Here we're going to write tests for our trees.
  * To add a test you are to write it as a function (e. g. SomeTest())
@@ -37,8 +37,7 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
         throw std::runtime_error("Tree is not implemented yet");
         // return std::make_shared<SkipList<T>>(params...);
     } else if (type == ImplType::kSplay) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<SplayTree<T>>(params...);
+        return std::make_shared<SplayTree<T>>(params...);
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -63,8 +62,7 @@ void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
         throw std::runtime_error("Tree is not implemented yet");
         // *dynamic_cast<SkipList<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
     } else if (type == ImplType::kSplay) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
+        *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
