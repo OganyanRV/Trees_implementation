@@ -1,4 +1,3 @@
-#pragma once
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -21,6 +20,7 @@ public:
         types_.emplace("AVL tree", ImplType::kAVL);
         types_.emplace("Cartesian tree", ImplType::kCartesian);
         types_.emplace("Red-Black tree", ImplType::kRB);
+        types_.emplace("Skip list", ImplType::kSkipList);
         types_.emplace("Splay tree", ImplType::kSplay);
 
         /* All tests are listed below.

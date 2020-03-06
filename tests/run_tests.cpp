@@ -22,9 +22,14 @@ TEST_CASE("Test Red-Black") {
     framework.RunAll(Substr("Red-Black"));
 }
 
+TEST_CASE("Test Skip list") {
+    TestFramework framework;
+    // framework.RunAll(Substr("Skip list));
+}
+
 TEST_CASE("Test Splay") {
     TestFramework framework;
-    // framework.RunAll(Substr("Splay"));
+    framework.RunAll(Substr("Splay"));
 }
 
 TEST_CASE("Test All") {

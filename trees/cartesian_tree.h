@@ -162,14 +162,14 @@ public:
         if (InsertRecursive(root_, new_node)) {
             ++size_;
         }
-        RecalcBeginEnd();
+        RecalcBegin();
     }
     void Erase(const T& value) override {
         std::optional<T> val(value);
         if (EraseRecursive(root_, val)) {
             --size_;
         }
-        RecalcBeginEnd();
+        RecalcBegin();
     }
 
     void Clear() override {
@@ -211,10 +211,12 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                while (it_->parent_.lock()->right_ == it_) {
-                    it_ = it_->parent_.lock();
+                auto parent = it_->parent_.lock();
+                while (parent->right_ == it_) {
+                    it_ = parent;
+                    parent = it_->parent_.lock();
                 }
-                it_ = it_->parent_.lock();
+                it_ = parent;
             }
         }
         void Decrement() override {
@@ -224,11 +226,13 @@ private:
                     it_ = it_->right_;
                 }
             } else {
-                while (it_->parent_.lock() && it_->parent_.lock()->left_ == it_) {
-                    it_ = it_->parent_.lock();
+                auto parent = it_->parent_.lock();
+                while (parent && parent->left_ == it_) {
+                    it_ = parent;
+                    parent = it_->parent_.lock();
                 }
-                if (it_->parent_.lock()) {
-                    it_ = it_->parent_.lock();
+                if (parent) {
+                    it_ = parent;
                 } else {
                     throw std::runtime_error("Index out of range while decreasing");
                 }
@@ -424,17 +428,12 @@ private:
         return result;
     }
 
-    void RecalcBeginEnd() {
+    void RecalcBegin() {
         std::shared_ptr<Node> cur_node = root_;
         while (cur_node->left_) {
             cur_node = cur_node->left_;
         }
         begin_ = cur_node;
-        cur_node = root_;
-        while (cur_node->right_) {
-            cur_node = cur_node->right_;
-        }
-        end_ = cur_node;
     }
 
     // No longer need

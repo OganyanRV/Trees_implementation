@@ -3,18 +3,24 @@
 image: alpine:latest
 
 build:
-    stage: build
-    before_script:
-        #- apt-get update --yes
-        #- apt-get install --yes cmake
-        #- apt-get install --yes g++
-        
-        - apk update
-        - apk add cmake
-        - apk add make gcc g++ libc-dev linux-headers
-    script:
-        - mkdir build
-        - cd build
-        - cmake ../
-        - make
-        - ./run_tests
+  stage: build
+  before_script:
+    #- apt-get update --yes
+    #- apt-get install --yes cmake
+    #- apt-get install --yes g++
+
+    - apk update
+    - apk add cmake
+    - apk add make gcc g++ libc-dev linux-headers
+  script:
+    - mkdir build
+    - cd build
+    - cmake ../
+    - make
+    - ./run_tests
+    - touch report.xml
+    - ./run_tests -r junit > report.xml
+
+  artifacts:
+    reports:
+      junit: build/report.xml

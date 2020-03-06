@@ -10,6 +10,7 @@ set(TREES trees/abstract_tree.h
         trees/avl_tree.h
         trees/cartesian_tree.h
         trees/rb_tree.h
+        trees/skip_list.h
         trees/splay_tree.h)
 
 set(TESTS tests/full_test_set.h

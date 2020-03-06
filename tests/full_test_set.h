@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -17,7 +18,7 @@
  * Don't forget to name your test!
  */
 
-enum class ImplType { kAVL, kCartesian, kRB, kSplay };
+enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay };
 
 /* This function returns a new tree of given type 'type'
  * as a shared pointer to base class.
@@ -29,10 +30,13 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     } else if (type == ImplType::kCartesian) {
         return std::make_shared<CartesianTree<T>>(params...);
     } else if (type == ImplType::kRB) {
-        return std::make_shared<RBTree<T>>(params...);
-    } else if (type == ImplType::kSplay) {
         throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<SplayTree<T>>(params...);
+        // return std::make_shared<RBTree<T>>(params...);
+    } else if (type == ImplType::kSkipList) {
+        throw std::runtime_error("Tree is not implemented yet");
+        // return std::make_shared<SkipList<T>>(params...);
+    } else if (type == ImplType::kSplay) {
+        return std::make_shared<SplayTree<T>>(params...);
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -50,10 +54,13 @@ void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
     } else if (type == ImplType::kCartesian) {
         *dynamic_cast<CartesianTree<T>*>(lhs.get()) = *dynamic_cast<CartesianTree<T>*>(rhs.get());
     } else if (type == ImplType::kRB) {
-        *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
-    } else if (type == ImplType::kSplay) {
         throw std::runtime_error("Tree is not implemented yet");
-        // *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
+        // *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
+    } else if (type == ImplType::kSkipList) {
+        throw std::runtime_error("Tree is not implemented yet");
+        // *dynamic_cast<SkipList<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
+    } else if (type == ImplType::kSplay) {
+        *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -181,6 +188,10 @@ void EmptyIteratorsTest(ImplType type) {
         auto it = tree->begin();
         REQUIRE_THROWS_AS(it++, std::exception);
     }
+    {
+        auto it = tree->end();
+        REQUIRE_THROWS_AS(++it, std::exception);
+    }
     REQUIRE(tree->empty());
 }
 
@@ -224,6 +235,35 @@ void FewElementsIteratorTest(ImplType type) {
         REQUIRE(set == tree);
         REQUIRE(tree->find(10) == tree->end());
         REQUIRE(tree->lower_bound(0) == tree->begin());
+    }
+    {
+        std::vector<int> fill = {3, 4, 2, 5, 1};
+        std::set<int> set(fill.begin(), fill.end());
+        auto tree = MakeTree<int>(type, fill.begin(), fill.end());
+        auto it = tree->end();
+        REQUIRE_THROWS_AS(*it, std::exception);
+        REQUIRE_THROWS_AS(it++, std::exception);
+        it = tree->begin();
+        REQUIRE_THROWS_AS(--it, std::exception);
+    }
+    {
+        std::vector<std::pair<std::string, int>> fill = {
+            {"one", 1}, {"two", 2}, {"three", 3}, {"four", 4}};
+        std::set<std::pair<std::string, int>> set(fill.begin(), fill.end());
+        auto tree = MakeTree<std::pair<std::string, int>>(type, fill.begin(), fill.end());
+        auto it = tree->begin();
+        REQUIRE(it->first == "four");
+        REQUIRE(it->second == 4);
+        ++it, ++it;
+        REQUIRE(it->first == "three");
+        REQUIRE(it->second == 3);
+        it = tree->begin();
+        REQUIRE_THROWS_AS(it--, std::exception);
+        it = tree->end();
+        REQUIRE_THROWS_AS(*it, std::exception);
+        REQUIRE_THROWS_AS(it->first, std::exception);
+        REQUIRE_THROWS_AS(it->second, std::exception);
+        REQUIRE_THROWS_AS(++it, std::exception);
     }
     {
         auto tree = MakeTree<std::pair<int, int>, std::initializer_list<std::pair<int, int>>>(
