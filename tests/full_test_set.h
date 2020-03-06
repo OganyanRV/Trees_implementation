@@ -30,8 +30,8 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     } else if (type == ImplType::kCartesian) {
         return std::make_shared<CartesianTree<T>>(params...);
     } else if (type == ImplType::kRB) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<RBTree<T>>(params...);
+        //throw std::runtime_error("Tree is not implemented yet");
+        return std::make_shared<RBTree<T>>(params...);
     } else if (type == ImplType::kSkipList) {
         throw std::runtime_error("Tree is not implemented yet");
         // return std::make_shared<SkipList<T>>(params...);
@@ -54,8 +54,8 @@ void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
     } else if (type == ImplType::kCartesian) {
         *dynamic_cast<CartesianTree<T>*>(lhs.get()) = *dynamic_cast<CartesianTree<T>*>(rhs.get());
     } else if (type == ImplType::kRB) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
+        //throw std::runtime_error("Tree is not implemented yet");
+        *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
     } else if (type == ImplType::kSkipList) {
         throw std::runtime_error("Tree is not implemented yet");
         // *dynamic_cast<SkipList<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
