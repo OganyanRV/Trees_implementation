@@ -1,23 +1,12 @@
 #pragma once
+#include <algorithm>
+#include <exception>
 #include <initializer_list>
 #include <memory>
 #include <optional>
-#include <exception>
-
-#include <algorithm>
 
 template <class T>
 class ITree;
-
-template <class T>
-bool operator<(const T& value1, const std::optional<T>& value2) {
-    if (!value2) {
-        return true;
-    } else {
-        return (value1 < value2.value());
-    }
-}
-
 
 template <class T>
 class RBTree : public ITree<T> {
@@ -30,6 +19,7 @@ public:
             left_ = nullptr;
             right_ = nullptr;
             parent_ = std::weak_ptr<Node>();
+            value_ = std::nullopt;
             is_red_ = true;
         }
 
@@ -41,17 +31,17 @@ public:
         }
 
         Node(const Node& other) : value_(other.value_) {
-            is_red_ = other.is_red_;
             left_ = other.left_;
             right_ = other.right_;
             parent_ = other.parent_;
+            is_red_ = other.is_red_;
         }
 
         std::shared_ptr<Node> left_;
         std::shared_ptr<Node> right_;
         std::weak_ptr<Node> parent_;
-        bool is_red_;
         std::optional<T> value_;
+        bool is_red_;
     };
 
     RBTree() {
@@ -121,14 +111,29 @@ public:
         return size_;
     }
     [[nodiscard]] bool Empty() const override {
-        return !size_;
+        return !static_cast<bool>(size_);
     }
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         return FindRecursive(root_, value);
     }
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
-        return LowerBoundRecursive(root_, value);
+        std::optional<T> val(value);
+        if (val < root_->value_) {
+            if (root_->left_) {
+                return LowerBoundRecursive(root_->left_, val);
+            } else {
+                return std::make_shared<RBTreeItImpl>(root_);
+            }
+        } else if (root_->value_ < val) {
+            if (root_->right_) {
+                return LowerBoundRecursive(root_->right_, val);
+            } else {
+                return End();
+            }
+        } else {
+            return std::make_shared<RBTreeItImpl>(root_);
+        }
     }
 
     void Insert(const T& value) override {
@@ -156,7 +161,7 @@ public:
         size_ = 0;
     }
 
-    void CheckRB() {
+    void CheckRB()  {
         std::vector<int> blackHeight;
         CheckRBRec(root_, blackHeight, 0);
 
@@ -222,10 +227,10 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                auto p = (it_->parent_).lock();
-                while (p && (p->right_ == it_)) {
-                    it_ = p;
-                    p = (it_->parent_).lock();
+                auto parent = (it_->parent_).lock();
+                while (parent && (parent->right_ == it_)) {
+                    it_ = parent;
+                    parent = (it_->parent_).lock();
                 }
                 if (!(it_->parent_).expired()) {
                     it_ = (it_->parent_).lock();
@@ -275,7 +280,7 @@ private:
             return it_ == casted->it_;
         }
 
-        std::shared_ptr<Node> GetPointer() {
+        std::shared_ptr<Node> GetPointer() const {
             return it_;
         }
 
@@ -308,7 +313,8 @@ private:
         }
     };
 
-    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from, const T& value) {
+    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
+                                                         const std::optional<T>& value) {
         if (value < from->value_) {
             if (from->left_) {
                 return LowerBoundRecursive(from->left_, value);
@@ -328,8 +334,9 @@ private:
         }
     }
 
-    //Set begin_ and end_ after modification
-    void BLCheck() {
+
+    //Set begin_ after modification
+    void RecaclBegin()  {
         auto node = root_;
         while (node->left_) {
             node = node->left_;
@@ -340,7 +347,7 @@ private:
     bool InsertImplementation(const std::shared_ptr<Node>& new_node) {
         if (!(root_)) {
             root_ = new_node;
-            BLCheck();
+            RecaclBegin();
             return true;
         }
 
@@ -354,7 +361,7 @@ private:
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
             } else {
-                BLCheck();
+                RecaclBegin();
                 return false;
             }
         }
@@ -365,13 +372,13 @@ private:
             cur_node->right_ = new_node;
         }
         new_node->parent_ = cur_node;
-        RBBalancing(new_node);
+        RBFixBalanceAfterInsert(new_node);
 
-        BLCheck();
+        RecaclBegin();
         return true;
     }
 
-    void RBBalancing(std::shared_ptr<Node> from) {
+    void RBFixBalanceAfterInsert(std::shared_ptr<Node> from) {
         // Node doesn't have a parent
         if (from->parent_.expired()) {
             return;
@@ -399,7 +406,7 @@ private:
                 parent->is_red_ = false;
                 uncle->is_red_ = false;
                 grandparent->is_red_ = true;
-                RBBalancing(grandparent);
+                RBFixBalanceAfterInsert(grandparent);
                 return;
             }
             // Node is left
@@ -416,7 +423,7 @@ private:
                 }
                 from->right_ = parent;
                 from->parent_ = grandparent;
-                RBBalancing(parent);
+                RBFixBalanceAfterInsert(parent);
                 return;
             } else {
                 // Big rotation
@@ -451,7 +458,7 @@ private:
                 parent->is_red_ = false;
                 uncle->is_red_ = false;
                 grandparent->is_red_ = true;
-                RBBalancing(grandparent);
+                RBFixBalanceAfterInsert(grandparent);
                 return;
             }
             // Node is right
@@ -468,7 +475,7 @@ private:
                 }
                 from->left_ = parent;
                 from->parent_ = grandparent;
-                RBBalancing(parent);
+                RBFixBalanceAfterInsert(parent);
                 return;
             } else {
                 if (!(grandparent->parent_).expired()) {
@@ -502,7 +509,7 @@ private:
 
         //Node doesn't have children
         if (!delete_node->right_ && !delete_node->left_) {
-            FixBalance(delete_node);
+            RBFixBalanceAfterErase(delete_node);
             if (parent) {
                 if (parent->left_ == delete_node) {
                     parent->left_ = nullptr;
@@ -530,7 +537,7 @@ private:
                     child_node->is_red_ =  false;
                 } else if  (!delete_node->is_red_ && !child_node->is_red_) {
 
-                    FixBalance(child_node);
+                    RBFixBalanceAfterErase(child_node);
                 }
             }
         } else {
@@ -548,8 +555,8 @@ private:
             EraseImplementation(delete_node);
             return;
         }
-     
-        BLCheck();
+
+        RecaclBegin();
     }
 
     void SwapWithChild(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
@@ -572,8 +579,6 @@ private:
 
         swap_node->right_ = from_node;
         from_node->parent_ = swap_node;
-
-
 
         swap_node->left_ = from_node->left_;
         if (from_node->left_) {
@@ -631,7 +636,7 @@ private:
         from_node->is_red_ = color;
     }
 
-    void FixBalance(std::shared_ptr<Node> from) {
+    void RBFixBalanceAfterErase(std::shared_ptr<Node> from) {
         while (!from->is_red_ && root_ != from) {
             auto parent = from->parent_.lock();
             if (!parent) {
