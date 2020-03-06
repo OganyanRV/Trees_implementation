@@ -16,6 +16,7 @@ public:
             left_ = nullptr;
             right_ = nullptr;
             parent_ = std::weak_ptr<Node>();
+            value_ = std::nullopt;
             height_ = 1;
         }
 
@@ -27,17 +28,17 @@ public:
         }
 
         Node(const Node& other) : value_(other.value_) {
-            height_ = other.height_;
             left_ = other.left_;
             right_ = other.right_;
             parent_ = other.parent_;
+            height_ = other.height_;
         }
 
         std::shared_ptr<Node> left_;
         std::shared_ptr<Node> right_;
         std::weak_ptr<Node> parent_;
-        unsigned char height_;
         std::optional<T> value_;
+        uint8_t height_;
     };
 
     AVLTree() {
@@ -114,7 +115,8 @@ public:
         return FindRecursive(root_, value);
     }
     std::shared_ptr<BaseImpl> LowerBound(const T &value) const override {
-        return LowerBoundRecursive(root_, value);
+        std::optional val(value);
+        return LowerBoundRecursive(root_, val);
     }
 
     void Insert(const T &value) override {
@@ -124,43 +126,21 @@ public:
         }
     }
     void Erase(const T &value) override {
-        std::shared_ptr<AVLTreeItImpl> find = std::static_pointer_cast<AVLTreeItImpl>(Find(value));
-        if (find->IsEqual(End())) {
+        auto nodeInTree = std::static_pointer_cast<AVLTreeItImpl>(Find(value));
+        if (nodeInTree->IsEqual(End())) {
             return;
         }
 
-        EraseImplementation(find->GetPointer());
+        EraseImplementation(nodeInTree->GetPointer());
         --size_;
     }
 
     void Clear() override {
-        end_->right_ = end_->left_ = nullptr;
-        end_->parent_ = std::weak_ptr<Node>();
-        root_ = end_;
-        begin_ = end_;
+        root_ = std::shared_ptr<Node>();
+        begin_ = root_;
+        end_ = root_;
         size_ = 0;
     }
-    void printT(std::ostream& ostr, std::shared_ptr<Node> p, int lvl) const {
-
-        if (p) {
-            printT(ostr, p->left_, lvl + 1);
-            for (int i = 0; i < lvl; i++) {
-                ostr << "     ";
-            }
-            if (p->value_) {
-                ostr  << *(p->value_) <<'('<< (int)(p->height_) << ',' << BFactor(p) <<')' <<'\n';
-            } else {
-                ostr << "+";
-            }
-            printT(ostr, p->right_, lvl + 1);
-        }
-    }
-
-    friend inline std::ostream& operator<<(std::ostream& ostr, const AVLTree<T>& tree) {
-        tree.printT(ostr, tree.root_, 0);
-        return ostr;
-    }
-
 
 private:
     std::shared_ptr<Node> begin_;
@@ -194,16 +174,15 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                auto p = (it_->parent_).lock();
-                while (p && (p->right_ == it_)) {
-                    it_ = p;
-                    p = (it_->parent_).lock();
+                auto parent = (it_->parent_).lock();
+                while (parent && (parent->right_ == it_)) {
+                    it_ = parent;
+                    parent = (it_->parent_).lock();
                 }
-                if (!(it_->parent_).expired()) {
-                    it_ = (it_->parent_).lock();
-                }
+                it_ = parent;
             }
         }
+
         void Decrement() override {
             if (it_->left_) {
                 it_ = it_->left_;
@@ -221,17 +200,18 @@ private:
                 } else {
                     throw std::runtime_error("Index out of range while decreasing");
                 }
-
             }
         }
+
         const T Dereferencing() const override {
-            if (it_ && !(it_->value_).has_value()) {
+            if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
-            return (it_->value_).value();
+            return it_->value_.value();
         }
+
         const T *Arrow() const override {
-            if (it_ && !(it_->value_)) {
+            if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
             return &(it_->value_).value();
@@ -264,8 +244,7 @@ private:
      * ---------------------------------------------------
      */
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const T& value) const {
-
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const std::optional<T>& value) const {
         if (!from)
             return End();
         if (value < from->value_) {
@@ -277,7 +256,8 @@ private:
         }
     };
 
-    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from, const T& value) {
+    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
+                                                         const std::optional<T>& value) {
         if (value < from->value_) {
             if (from->left_) {
                 return LowerBoundRecursive(from->left_, value);
@@ -297,8 +277,8 @@ private:
         }
     }
 
-    //Set begin_ and end_ after modification
-    void BLCheck() {
+    //Set begin_ after modification
+    void RecaclBegin() {
         auto node = root_;
         while (node->left_) {
             node = node->left_;
@@ -306,12 +286,12 @@ private:
         begin_ = node;
     }
 
-    void FixHeight(std::shared_ptr<Node> node) {
+    void RecaclHeight(std::shared_ptr<Node> node) {
         if (!node) {
             return;
         }
 
-        unsigned char hl, hr;
+        uint8_t hl, hr;
 
         if (!node->left_) {
             hl = 0;
@@ -332,8 +312,8 @@ private:
         }
     }
 
-    int BFactor(std::shared_ptr<Node> node) const {
-        unsigned char hl, hr;
+    int AVLBalanceFactor(std::shared_ptr<Node> node) const {
+        uint8_t hl, hr;
 
         if (!node->left_) {
             hl = 0;
@@ -372,8 +352,8 @@ private:
         }
 
         from->parent_ = right_node;
-        FixHeight(from);
-        FixHeight(right_node);
+        RecaclHeight(from);
+        RecaclHeight(right_node);
     }
 
     void RightRotate(std::shared_ptr<Node> from) {
@@ -399,21 +379,21 @@ private:
         }
 
         from->parent_ = left_node;
-        FixHeight(from);
-        FixHeight(left_node);
+        RecaclHeight(from);
+        RecaclHeight(left_node);
     }
 
     void AVLFixBalance(std::shared_ptr<Node> node) {
-        FixHeight(node);
-        if (BFactor(node) == 2) {
-            if (node->right_ && BFactor(node->right_) < 0) {
+        RecaclHeight(node);
+        if (AVLBalanceFactor(node) == 2) {
+            if (node->right_ && AVLBalanceFactor(node->right_) < 0) {
                 RightRotate(node->right_);
             }
             LeftRotate(node);
             return;
         }
-        if (BFactor(node) == -2) {
-            if (node->left_ && BFactor(node->left_) > 0) {
+        if (AVLBalanceFactor(node) == -2) {
+            if (node->left_ && AVLBalanceFactor(node->left_) > 0) {
                 LeftRotate(node->left_);
             }
             RightRotate(node);
@@ -424,7 +404,7 @@ private:
     bool InsertImplementation(const std::shared_ptr<Node>& new_node) {
         if (!(root_)) {
             root_ = new_node;
-            BLCheck();
+            RecaclBegin();
             return true;
         }
 
@@ -438,7 +418,7 @@ private:
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
             } else {
-                BLCheck();
+                RecaclBegin();
                 return false;
             }
         }
@@ -454,7 +434,7 @@ private:
             AVLFixBalance(cur_node);
             cur_node = cur_node->parent_.lock();
         }
-        BLCheck();
+        RecaclBegin();
         return true;
     }
 
@@ -507,7 +487,7 @@ private:
             parent = parent->parent_.lock();
         }
 
-        BLCheck();
+        RecaclBegin();
     }
 
     //When swap node is child
