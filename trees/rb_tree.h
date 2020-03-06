@@ -115,7 +115,8 @@ public:
     }
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
-        return FindRecursive(root_, value);
+        std::optional<T> val(value);
+        return FindRecursive(root_, val);
     }
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
@@ -144,20 +145,19 @@ public:
     }
 
     void Erase(const T& value) override {
-        std::shared_ptr<RBTreeItImpl> find = std::static_pointer_cast<RBTreeItImpl>(Find(value));
-        if (find->IsEqual(End())) {
+        auto nodeInTree = std::static_pointer_cast<RBTreeItImpl>(Find(value));
+        if (nodeInTree->IsEqual(End())) {
             return;
         }
 
-        EraseImplementation(find->GetPointer());
+        EraseImplementation(nodeInTree->GetPointer());
         --size_;
     }
 
     void Clear() override {
-        end_->right_ = end_->left_ = nullptr;
-        end_->parent_ = std::weak_ptr<Node>();
-        root_ = end_;
-        begin_ = end_;
+        root_ = std::shared_ptr<Node>();
+        begin_ = root_;
+        end_ = root_;
         size_ = 0;
     }
 
@@ -232,9 +232,7 @@ private:
                     it_ = parent;
                     parent = (it_->parent_).lock();
                 }
-                if (!(it_->parent_).expired()) {
-                    it_ = (it_->parent_).lock();
-                }
+                it_ = parent;
             }
         }
 
@@ -259,14 +257,14 @@ private:
         }
 
         const T Dereferencing() const override {
-            if (it_ && !(it_->value_).has_value()) {
+            if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
-        return (it_->value_).value();
+            return it_->value_.value();
         }
 
-        const T* Arrow() const override {
-            if (it_ && !(it_->value_)) {
+        const T *Arrow() const override {
+            if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
             return &(it_->value_).value();
@@ -300,7 +298,7 @@ private:
      * ---------------------------------------------------
      */
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const T& value) const {
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const std::optional<T>& value) const {
 
         if (!from)
             return End();
