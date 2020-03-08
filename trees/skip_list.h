@@ -117,7 +117,10 @@ public:
         return !size_;
     }
 
-    std::shared_ptr<BaseImpl> Find(const T& value) const override;
+    std::shared_ptr<BaseImpl> Find(const T& value) const override {
+        std::optional<T> val(value);
+        return FindRecursive(head_, val);
+    }
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override;
 
     void Insert(const T& value) override;
@@ -193,6 +196,19 @@ private:
     }
     std::shared_ptr<BaseImpl> End() const override {
         return std::make_shared<SkipListItImpl>(end_);
+    }
+
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const std::optional<T>& value) {
+        if (from.value_ == std::optional<T>::max()) {
+            return End();
+        }
+        if (from.value_ < value) {
+            return FindRecursive(from->right_,value);
+        }
+        if (!from.down_) {
+            return from;
+        }
+        return FindRecursive(from.down,value);
     }
 };
 
