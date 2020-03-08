@@ -14,6 +14,33 @@ private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
 public:
+public:
+    struct Node {
+        Node() {
+            left_ = std::weak_ptr<Node>();
+            down_ = nullptr;
+            right_ = nullptr;
+            value_ = std::nullopt;
+        }
+
+        explicit Node(const T& value) : value_(value) {
+            left_ = std::weak_ptr<Node>();
+            down_ = nullptr;
+            right_ = nullptr;
+        }
+
+        Node(const Node& other) : value_(other.value_) {
+            left_ = other.left_;
+            down_ = other.down_;
+            right_ = other.right_;
+        }
+
+        std::shared_ptr<Node> left_;
+        std::weak_ptr<Node> down_;
+        std::shared_ptr<Node> right_;
+        std::optional<T> value_;
+    };
+
     SkipList();
 
     template <class InitIterator>
