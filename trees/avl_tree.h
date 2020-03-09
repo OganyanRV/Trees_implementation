@@ -108,7 +108,7 @@ public:
         return size_;
     }
     [[nodiscard]] bool Empty() const override {
-        return !size_;
+        return !static_cast<bool>(size_);
     }
 
     std::shared_ptr<BaseImpl> Find(const T &value) const override {
@@ -174,10 +174,10 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                auto parent = (it_->parent_).lock();
+                auto parent = it_->parent_.lock();
                 while (parent && (parent->right_ == it_)) {
                     it_ = parent;
-                    parent = (it_->parent_).lock();
+                    parent = it_->parent_.lock();
                 }
                 it_ = parent;
             }
@@ -214,7 +214,7 @@ private:
             if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
-            return &(it_->value_).value();
+            return &it_->value_.value();
         }
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
             auto casted = std::dynamic_pointer_cast<AVLTreeItImpl>(other);

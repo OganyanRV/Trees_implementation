@@ -227,10 +227,10 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                auto parent = (it_->parent_).lock();
+                auto parent = it_->parent_.lock();
                 while (parent && (parent->right_ == it_)) {
                     it_ = parent;
-                    parent = (it_->parent_).lock();
+                    parent = it_->parent_.lock();
                 }
                 it_ = parent;
             }
@@ -267,7 +267,7 @@ private:
             if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
-            return &(it_->value_).value();
+            return &it_->value_.value();
         }
 
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
@@ -343,7 +343,7 @@ private:
     }
 
     bool InsertImplementation(const std::shared_ptr<Node>& new_node) {
-        if (!(root_)) {
+        if (!root_) {
             root_ = new_node;
             RecaclBegin();
             return true;
@@ -382,7 +382,7 @@ private:
             return;
         }
 
-        auto parent = (from->parent_).lock();
+        auto parent = from->parent_.lock();
 
         // Everything is okey
         if (parent->is_red_ == false) {
@@ -390,12 +390,12 @@ private:
         }
 
         // Node doesn't have a grandparent
-        if ((parent->parent_).expired()) {
+        if (parent->parent_.expired()) {
             parent->is_red_ = false;
             return;
         }
 
-        auto grandparent = (parent->parent_).lock();
+        auto grandparent = parent->parent_.lock();
 
         if (grandparent->right_ == parent) {
             auto uncle = grandparent->left_;
@@ -425,8 +425,8 @@ private:
                 return;
             } else {
                 // Big rotation
-                if (!(grandparent->parent_).expired()) {
-                    auto grandgrandparent = (grandparent->parent_).lock();
+                if (!grandparent->parent_.expired()) {
+                    auto grandgrandparent = grandparent->parent_.lock();
                     if (grandgrandparent->right_ == grandparent) {
                         grandgrandparent->right_ = parent;
                     } else {
@@ -456,6 +456,7 @@ private:
                 parent->is_red_ = false;
                 uncle->is_red_ = false;
                 grandparent->is_red_ = true;
+
                 RBFixBalanceAfterInsert(grandparent);
                 return;
             }
@@ -476,8 +477,8 @@ private:
                 RBFixBalanceAfterInsert(parent);
                 return;
             } else {
-                if (!(grandparent->parent_).expired()) {
-                    auto ggrandparent = (grandparent->parent_).lock();
+                if (!grandparent->parent_.expired()) {
+                    auto ggrandparent = grandparent->parent_.lock();
                     if (ggrandparent->left_ == grandparent) {
                         ggrandparent->left_ = parent;
                     } else {
