@@ -75,7 +75,7 @@ public:
     }
     SkipList(SkipList&& other) noexcept;
     SkipList(std::shared_ptr<ITree<T>> other)
-        : SkipList(*dynamic_cast<SkipList<T>*>(other.get())) {
+            : SkipList(*dynamic_cast<SkipList<T>*>(other.get())) {
     }
     SkipList& operator=(const SkipList& other) {
         if (head_ == head_.root_) {
@@ -124,7 +124,7 @@ public:
 
     void Erase(const T& value) override {
         std::optional<T> val(value);
-        if (EraseRecursive(head_, value)) {
+        if (EraseImpl(head_, value)) {
             --size_;
         }
     }
@@ -230,6 +230,7 @@ private:
         return FindRecursive(from.down,value);
     }
 
+
     bool EraseRecursive(std::shared_ptr<Node>& from, const std::optional<T>& value) {
         if (from->value_ == std::optional<T>::max()) {
             return false;
@@ -246,63 +247,84 @@ private:
             return EraseRecursive(from->down,value);
         }
         if (from->down_ ) {
-        return EraseRecursive(from->down,value);
-        }
-        return false;
+            return EraseRecursive(from->down,value);
 
-    }
+            bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
+                if (from.value_ == std::optional<T>::max()) {
+                    return false;
+                }
+                if (from.value_ < value) {
+                    return FindRecursive(from->right_,value);
+                }
+                if (from.value_ == value) {
+                    from.left_.right_=from.right_;
+                    from.right_.left_=from.left_;
+                    if (!from.down_ ) {
+                        return true;
+                    }
+                    return FindRecursive(from.down,value);
+                }
+                if (from.down_ ) {
+                    return FindRecursive(from.down,value);
 
-    std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                  const std::optional<T>& value) {
-        if (from->value_ == std::optional<T>::max()) {
-            return End();
-        }
-        if (from->right_->value_ < value) {
-            return LowerBoundRecursive(from->right_,value);
-        }
-        if (!from->down_) {
-            auto tmp = std::make_shared<SkipListItImpl> (from);
-            return tmp->Increment();
-        }
-        return LowerBoundRecursive(from->down_,value);
-    }
+                }
+                return false;
 
-    bool InsertRecursive(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
-        // бред написал тупой
-        if (from->value_ == std::optional<T>::max() || from->value_ == new_node->value_) {
-            return false;
-        }
-        while (from->down) {
-            from = from->down_;
-        }
-        if (from.value_ < new_node->value_) {
-            return InsertRecursive(from->right_,new_node->value_);
-        }
-        if (!from.down_) {
-            if (from->left_.lock()) {
-                from->left_->right=new_node;
             }
-            if (from->right_.lock()) {
-                from->right->left_=new_node;
-            }
-            from
-            if (coin_flip) {
-                auto up_node = std::make_shared<Node> (new_node);
-                up_node->down_ = new_node;
-                BuildLvl(up_node);
-            }
-            return true;
-        }
-        return InsertRecursive(from->down_,new_node->value_);
-    }
 
-    void BuildLvl(std::shared_ptr<Node> new_node) {
-        new_node
-        if (coin_flip) {
-            auto up_node = std::make_shared<Node> (new_node);
-            up_node->down_ = new_node;
-            BuildLvl(up_node);
-        }
-    }
-};
+
+            std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
+                                                          const std::optional<T>& value) {
+                if (from->value_ == std::optional<T>::max()) {
+                    return End();
+                }
+                if (from->right_->value_ < value) {
+                    return LowerBoundRecursive(from->right_,value);
+                }
+                if (!from->down_) {
+                    auto tmp = std::make_shared<SkipListItImpl> (from);
+                    return tmp->Increment();
+                }
+                return LowerBoundRecursive(from->down_,value);
+            }
+
+            bool InsertRecursive(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
+                // бред написал тупой
+                if (from->value_ == std::optional<T>::max() || from->value_ == new_node->value_) {
+                    return false;
+                }
+                while (from->down) {
+                    from = from->down_;
+                }
+                if (from.value_ < new_node->value_) {
+                    return InsertRecursive(from->right_,new_node->value_);
+                }
+                if (!from.down_) {
+                    if (from->left_.lock()) {
+                        from->left_->right=new_node;
+                    }
+                    if (from->right_.lock()) {
+                        from->right->left_=new_node;
+                    }
+                    from
+                    if (coin_flip) {
+                        auto up_node = std::make_shared<Node> (new_node);
+                        up_node->down_ = new_node;
+                        BuildLvl(up_node);
+                    }
+                    return true;
+                }
+                return InsertRecursive(from->down_,new_node->value_);
+            }
+
+            void BuildLvl(std::shared_ptr<Node> new_node) {
+                new_node
+                if (coin_flip) {
+                    auto up_node = std::make_shared<Node> (new_node);
+                    up_node->down_ = new_node;
+                    BuildLvl(up_node);
+                }
+            }
+
+        };
 
