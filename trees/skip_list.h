@@ -121,6 +121,14 @@ public:
         std::optional<T> val(value);
         return FindRecursive(head_, val);
     }
+
+    void Erase(const T& value) override {
+        std::optional<T> val(value);
+        if (EraseImpl(head_, value)) {
+            --size_;
+        }
+    }
+
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override;
 
     void Insert(const T& value) override;
@@ -209,6 +217,28 @@ private:
             return from;
         }
         return FindRecursive(from.down,value);
+    }
+
+    bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
+        if (from.value_ == std::optional<T>::max()) {
+            return false;
+        }
+        if (from.value_ < value) {
+            return FindRecursive(from->right_,value);
+        }
+        if (from.value_ == value) {
+            from.left_.right_=from.right_;
+            from.right_.left_=from.left_;
+            if (!from.down_ ) {
+                return true;
+            }
+            return FindRecursive(from.down,value);
+        }
+        if (from.down_ ) {
+        return FindRecursive(from.down,value);
+        }
+        return false;
+
     }
 };
 
