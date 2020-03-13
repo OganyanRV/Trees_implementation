@@ -22,5 +22,5 @@ add_library(tests ${TESTS})
 set_target_properties(trees PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(tests PROPERTIES LINKER_LANGUAGE CXX)
 
-add_executable(run_tests tests/run_tests.cpp)
-#add_executable(unit_tests_for_set tests/unit_tests_for_set.cpp)
+add_executable(run_all_tests tests/run_all_tests.cpp)
+add_executable(run_tests_separately tests/run_all_tests.cpp)

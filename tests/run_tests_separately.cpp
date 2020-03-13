@@ -9,7 +9,7 @@ using std::cout;
 
 TEST_CASE("Test AVL") {
     TestFramework framework;
-    // framework.RunAll(Substr("AVL"));
+    framework.RunAll(Substr("AVL"));
 }
 
 TEST_CASE("Test Cartesian") {
@@ -19,7 +19,7 @@ TEST_CASE("Test Cartesian") {
 
 TEST_CASE("Test Red-Black") {
     TestFramework framework;
-    // framework.RunAll(Substr("Red-Black"));
+    framework.RunAll(Substr("Red-Black"));
 }
 
 TEST_CASE("Test Skip list") {
@@ -29,13 +29,5 @@ TEST_CASE("Test Skip list") {
 
 TEST_CASE("Test Splay") {
     TestFramework framework;
-    // framework.RunAll(Substr("Splay"));
-}
-
-TEST_CASE("Test All") {
-    TestFramework framework;
-    // framework.RunAll(Substr("AVL"));
-    // framework.RunAll(Substr("Cartesian"));
-    // framework.RunAll(Substr("Red-Black"));
-    // framework.RunAll(Substr("Splay"));
+    framework.RunAll(Substr("Splay"));
 }

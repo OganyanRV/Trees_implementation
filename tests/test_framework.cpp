@@ -1,4 +1,3 @@
-#pragma once
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -21,7 +20,7 @@ public:
         types_.emplace("AVL tree", ImplType::kAVL);
         types_.emplace("Cartesian tree", ImplType::kCartesian);
         types_.emplace("Red-Black tree", ImplType::kRB);
-        types_.emplace("Skip list", ImplType::kSkipList);
+        // types_.emplace("Skip list", ImplType::kSkipList);
         types_.emplace("Splay tree", ImplType::kSplay);
 
         /* All tests are listed below.
@@ -40,6 +39,7 @@ public:
         tests_.emplace("!_strange_copy_test", StrangeCopyTest);
         tests_.emplace("!_find_and_lower_bound_test", FindAndLBTest);
         tests_.emplace("!_insert_and_erase_test", InsertAndEraseTest);
+        tests_.emplace("rb_only_black_height_test", RBBlackHeightTest);
     }
 
     template <class TreePredicate>

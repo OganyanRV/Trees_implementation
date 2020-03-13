@@ -4,12 +4,18 @@
 #include <iostream>
 #include <random>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "../trees/abstract_tree.h"
+#include "../trees/avl_tree.h"
+#include "../trees/cartesian_tree.h"
+#include "../trees/rb_tree.h"
+#include "../trees/skip_list.h"
+#include "../trees/splay_tree.h"
 
-#define RELEASE_BUILD
+// #define RELEASE_BUILD
 
 /* Here we're going to write tests for our trees.
  * To add a test you are to write it as a function (e. g. SomeTest())
@@ -25,19 +31,16 @@ enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay };
 template <class T, class... Types>
 std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     if (type == ImplType::kAVL) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<AVLTree<T>>(params...);
+        return std::make_shared<AVLTree<T>>(params...);
     } else if (type == ImplType::kCartesian) {
         return std::make_shared<CartesianTree<T>>(params...);
     } else if (type == ImplType::kRB) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<RBTree<T>>(params...);
+        return std::make_shared<RBTree<T>>(params...);
     } else if (type == ImplType::kSkipList) {
         throw std::runtime_error("Tree is not implemented yet");
         // return std::make_shared<SkipList<T>>(params...);
     } else if (type == ImplType::kSplay) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // return std::make_shared<SplayTree<T>>(params...);
+        return std::make_shared<SplayTree<T>>(params...);
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -51,19 +54,16 @@ template <class T>
 void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
                         std::shared_ptr<ITree<T>> rhs) {
     if (type == ImplType::kAVL) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // *dynamic_cast<AVLTree<T>*>(lhs.get()) = *dynamic_cast<AVLTree<T>*>(rhs.get());
+        *dynamic_cast<AVLTree<T>*>(lhs.get()) = *dynamic_cast<AVLTree<T>*>(rhs.get());
     } else if (type == ImplType::kCartesian) {
         *dynamic_cast<CartesianTree<T>*>(lhs.get()) = *dynamic_cast<CartesianTree<T>*>(rhs.get());
     } else if (type == ImplType::kRB) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
+        *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
     } else if (type == ImplType::kSkipList) {
         throw std::runtime_error("Tree is not implemented yet");
         // *dynamic_cast<SkipList<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
     } else if (type == ImplType::kSplay) {
-        throw std::runtime_error("Tree is not implemented yet");
-        // *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
+        *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -191,6 +191,10 @@ void EmptyIteratorsTest(ImplType type) {
         auto it = tree->begin();
         REQUIRE_THROWS_AS(it++, std::exception);
     }
+    {
+        auto it = tree->end();
+        REQUIRE_THROWS_AS(++it, std::exception);
+    }
     REQUIRE(tree->empty());
 }
 
@@ -234,6 +238,35 @@ void FewElementsIteratorTest(ImplType type) {
         REQUIRE(set == tree);
         REQUIRE(tree->find(10) == tree->end());
         REQUIRE(tree->lower_bound(0) == tree->begin());
+    }
+    {
+        std::vector<int> fill = {3, 4, 2, 5, 1};
+        std::set<int> set(fill.begin(), fill.end());
+        auto tree = MakeTree<int>(type, fill.begin(), fill.end());
+        auto it = tree->end();
+        REQUIRE_THROWS_AS(*it, std::exception);
+        REQUIRE_THROWS_AS(it++, std::exception);
+        it = tree->begin();
+        REQUIRE_THROWS_AS(--it, std::exception);
+    }
+    {
+        std::vector<std::pair<std::string, int>> fill = {
+            {"one", 1}, {"two", 2}, {"three", 3}, {"four", 4}};
+        std::set<std::pair<std::string, int>> set(fill.begin(), fill.end());
+        auto tree = MakeTree<std::pair<std::string, int>>(type, fill.begin(), fill.end());
+        auto it = tree->begin();
+        REQUIRE(it->first == "four");
+        REQUIRE(it->second == 4);
+        ++it, ++it;
+        REQUIRE(it->first == "three");
+        REQUIRE(it->second == 3);
+        it = tree->begin();
+        REQUIRE_THROWS_AS(it--, std::exception);
+        it = tree->end();
+        REQUIRE_THROWS_AS(*it, std::exception);
+        REQUIRE_THROWS_AS(it->first, std::exception);
+        REQUIRE_THROWS_AS(it->second, std::exception);
+        REQUIRE_THROWS_AS(++it, std::exception);
     }
     {
         auto tree = MakeTree<std::pair<int, int>, std::initializer_list<std::pair<int, int>>>(
@@ -475,6 +508,51 @@ void InsertAndEraseTest(ImplType type) {
                 tree->erase(value);
                 it = set.erase(it);
                 CheckFindAndLB(set, tree, value);
+            }
+            if (it == set.end()) {
+                it = set.begin();
+            }
+        }
+    }
+}
+
+void RBBlackHeightTest(ImplType type) {
+    if (type != ImplType::kRB) {
+        std::cout << "Test is only designed for RB trees. ";
+        return;
+    }
+    for (int count = 0; count < 100; ++count) {
+        std::vector<int> fill;
+        for (int i = 0; i < 10; ++i) {
+            fill.emplace_back(Random::Next(-100, 100));
+        }
+        std::set<int> set(fill.begin(), fill.end());
+        auto tree = std::make_shared<RBTree<int>>();
+        for (const int& value : fill) {
+            tree->insert(value);
+            REQUIRE_NOTHROW(tree->CheckRB());
+        }
+
+        for (int i = 0; i < 10; ++i) {
+            int value = Random::Next(-100, 100);
+            if (Random::Next(0, 1)) {
+                set.insert(value);
+                tree->insert(value);
+            } else {
+                set.erase(value);
+                tree->erase(value);
+            }
+            REQUIRE_NOTHROW(tree->CheckRB());
+        }
+        auto it = set.begin();
+        while (!set.empty()) {
+            if (Random::Next(0, 5)) {
+                ++it;
+            } else {
+                int value = *it;
+                tree->erase(value);
+                it = set.erase(it);
+                REQUIRE_NOTHROW(tree->CheckRB());
             }
             if (it == set.end()) {
                 it = set.begin();

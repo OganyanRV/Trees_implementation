@@ -2,11 +2,10 @@
 #include <cassert>
 #include <memory>
 
-#include "avl_tree.h"
-#include "cartesian_tree.h"
-#include "rb_tree.h"
-#include "skip_list.h"
-#include "splay_tree.h"
+template <class T>
+bool operator<(const std::optional<T>& lhs, const std::optional<T>& rhs) {
+    return (lhs && (!rhs || *lhs < *rhs));
+}
 
 template <class T>
 class ITree {
