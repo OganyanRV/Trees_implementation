@@ -9,6 +9,11 @@
 #include <vector>
 
 #include "../trees/abstract_tree.h"
+#include "../trees/avl_tree.h"
+#include "../trees/cartesian_tree.h"
+#include "../trees/rb_tree.h"
+#include "../trees/skip_list.h"
+#include "../trees/splay_tree.h"
 
 // #define RELEASE_BUILD
 
@@ -30,7 +35,6 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     } else if (type == ImplType::kCartesian) {
         return std::make_shared<CartesianTree<T>>(params...);
     } else if (type == ImplType::kRB) {
-        //throw std::runtime_error("Tree is not implemented yet");
         return std::make_shared<RBTree<T>>(params...);
     } else if (type == ImplType::kSkipList) {
         throw std::runtime_error("Tree is not implemented yet");
@@ -54,7 +58,6 @@ void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
     } else if (type == ImplType::kCartesian) {
         *dynamic_cast<CartesianTree<T>*>(lhs.get()) = *dynamic_cast<CartesianTree<T>*>(rhs.get());
     } else if (type == ImplType::kRB) {
-        //throw std::runtime_error("Tree is not implemented yet");
         *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
     } else if (type == ImplType::kSkipList) {
         throw std::runtime_error("Tree is not implemented yet");
@@ -505,6 +508,51 @@ void InsertAndEraseTest(ImplType type) {
                 tree->erase(value);
                 it = set.erase(it);
                 CheckFindAndLB(set, tree, value);
+            }
+            if (it == set.end()) {
+                it = set.begin();
+            }
+        }
+    }
+}
+
+void RBBlackHeightTest(ImplType type) {
+    if (type != ImplType::kRB) {
+        std::cout << "Test is only designed for RB trees. ";
+        return;
+    }
+    for (int count = 0; count < 100; ++count) {
+        std::vector<int> fill;
+        for (int i = 0; i < 10; ++i) {
+            fill.emplace_back(Random::Next(-100, 100));
+        }
+        std::set<int> set(fill.begin(), fill.end());
+        auto tree = std::make_shared<RBTree<int>>();
+        for (const int& value : fill) {
+            tree->insert(value);
+            REQUIRE_NOTHROW(tree->CheckRB());
+        }
+
+        for (int i = 0; i < 10; ++i) {
+            int value = Random::Next(-100, 100);
+            if (Random::Next(0, 1)) {
+                set.insert(value);
+                tree->insert(value);
+            } else {
+                set.erase(value);
+                tree->erase(value);
+            }
+            REQUIRE_NOTHROW(tree->CheckRB());
+        }
+        auto it = set.begin();
+        while (!set.empty()) {
+            if (Random::Next(0, 5)) {
+                ++it;
+            } else {
+                int value = *it;
+                tree->erase(value);
+                it = set.erase(it);
+                REQUIRE_NOTHROW(tree->CheckRB());
             }
             if (it == set.end()) {
                 it = set.begin();

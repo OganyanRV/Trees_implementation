@@ -20,14 +20,14 @@ public:
             height_ = 1;
         }
 
-        explicit Node(const T& value) : value_(value) {
+        explicit Node(const T &value) : value_(value) {
             left_ = nullptr;
             right_ = nullptr;
             parent_ = std::weak_ptr<Node>();
             height_ = 1;
         }
 
-        Node(const Node& other) : value_(other.value_) {
+        Node(const Node &other) : value_(other.value_) {
             left_ = other.left_;
             right_ = other.right_;
             parent_ = other.parent_;
@@ -54,14 +54,14 @@ public:
             Insert(*cur);
         }
     }
-    AVLTree(std::initializer_list<T> list)  : AVLTree() {
-        for (const T& value : list) {
+    AVLTree(std::initializer_list<T> list) : AVLTree() {
+        for (const T &value : list) {
             Insert(value);
         }
     }
 
     AVLTree(const AVLTree &other) : AVLTree() {
-        for (const T& value : other) {
+        for (const T &value : other) {
             Insert(value);
         }
     }
@@ -81,7 +81,7 @@ public:
         root_ = end_;
         begin_ = end_;
         size_ = 0;
-        for (const T& value : other) {
+        for (const T &value : other) {
             Insert(value);
         }
         return *this;
@@ -165,7 +165,7 @@ private:
             return std::make_shared<AVLTreeItImpl>(*this);
         }
         void Increment() override {
-            if (!(it_->value_)) {
+            if (!it_->value_) {
                 throw std::runtime_error("Index out of range while increasing");
             }
             if (it_->right_) {
@@ -175,14 +175,13 @@ private:
                 }
             } else {
                 auto parent = it_->parent_.lock();
-                while (parent && (parent->right_ == it_)) {
+                while (parent && parent->right_ == it_) {
                     it_ = parent;
                     parent = it_->parent_.lock();
                 }
                 it_ = parent;
             }
         }
-
         void Decrement() override {
             if (it_->left_) {
                 it_ = it_->left_;
@@ -209,13 +208,13 @@ private:
             }
             return it_->value_.value();
         }
-
         const T *Arrow() const override {
             if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
             return &it_->value_.value();
         }
+
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
             auto casted = std::dynamic_pointer_cast<AVLTreeItImpl>(other);
             if (!casted) {
@@ -223,7 +222,6 @@ private:
             }
             return it_ == casted->it_;
         }
-
         std::shared_ptr<Node> GetPointer() {
             return it_;
         }
@@ -244,7 +242,8 @@ private:
      * ---------------------------------------------------
      */
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const std::optional<T>& value) const {
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
+                                            const std::optional<T> &value) const {
         if (!from)
             return End();
         if (value < from->value_) {
@@ -255,9 +254,8 @@ private:
             return std::make_shared<AVLTreeItImpl>(from);
         }
     };
-
     static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                         const std::optional<T>& value) {
+                                                         const std::optional<T> &value) {
         if (value < from->value_) {
             if (from->left_) {
                 return LowerBoundRecursive(from->left_, value);
@@ -275,58 +273,6 @@ private:
         } else {
             return std::make_shared<AVLTreeItImpl>(from);
         }
-    }
-
-    //Set begin_ after modification
-    void RecaclBegin() {
-        auto node = root_;
-        while (node->left_) {
-            node = node->left_;
-        }
-        begin_ = node;
-    }
-
-    void RecaclHeight(std::shared_ptr<Node> node) {
-        if (!node) {
-            return;
-        }
-
-        uint8_t hl, hr;
-
-        if (!node->left_) {
-            hl = 0;
-        } else {
-            hl = node->left_->height_;
-        }
-
-        if (!node->right_) {
-            hr = 0;
-        } else {
-            hr = node->right_->height_;
-        }
-
-        if (hl > hr) {
-            node->height_ = hl + 1;
-        } else {
-            node->height_ = hr + 1;
-        }
-    }
-
-    int AVLBalanceFactor(std::shared_ptr<Node> node) const {
-        uint8_t hl, hr;
-
-        if (!node->left_) {
-            hl = 0;
-        } else {
-            hl = node->left_->height_;
-        }
-
-        if (!node->right_) {
-            hr = 0;
-        } else {
-            hr = node->right_->height_;
-        }
-        return hr - hl;
     }
 
     void LeftRotate(std::shared_ptr<Node> from) {
@@ -352,10 +298,9 @@ private:
         }
 
         from->parent_ = right_node;
-        RecaclHeight(from);
-        RecaclHeight(right_node);
+        RecalcHeight(from);
+        RecalcHeight(right_node);
     }
-
     void RightRotate(std::shared_ptr<Node> from) {
         auto left_node = from->left_;
 
@@ -379,12 +324,28 @@ private:
         }
 
         from->parent_ = left_node;
-        RecaclHeight(from);
-        RecaclHeight(left_node);
+        RecalcHeight(from);
+        RecalcHeight(left_node);
     }
 
+    int AVLBalanceFactor(std::shared_ptr<Node> node) const {
+        uint8_t hl, hr;
+
+        if (!node->left_) {
+            hl = 0;
+        } else {
+            hl = node->left_->height_;
+        }
+
+        if (!node->right_) {
+            hr = 0;
+        } else {
+            hr = node->right_->height_;
+        }
+        return hr - hl;
+    }
     void AVLFixBalance(std::shared_ptr<Node> node) {
-        RecaclHeight(node);
+        RecalcHeight(node);
         if (AVLBalanceFactor(node) == 2) {
             if (node->right_ && AVLBalanceFactor(node->right_) < 0) {
                 RightRotate(node->right_);
@@ -401,10 +362,36 @@ private:
         }
     }
 
-    bool InsertImplementation(const std::shared_ptr<Node>& new_node) {
+    void RecalcHeight(std::shared_ptr<Node> node) {
+        if (!node) {
+            return;
+        }
+
+        uint8_t hl, hr;
+
+        if (!node->left_) {
+            hl = 0;
+        } else {
+            hl = node->left_->height_;
+        }
+
+        if (!node->right_) {
+            hr = 0;
+        } else {
+            hr = node->right_->height_;
+        }
+
+        if (hl > hr) {
+            node->height_ = hl + 1;
+        } else {
+            node->height_ = hr + 1;
+        }
+    }
+
+    bool InsertImplementation(const std::shared_ptr<Node> &new_node) {
         if (!(root_)) {
             root_ = new_node;
-            RecaclBegin();
+            RecalcBegin();
             return true;
         }
 
@@ -418,7 +405,7 @@ private:
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
             } else {
-                RecaclBegin();
+                RecalcBegin();
                 return false;
             }
         }
@@ -434,15 +421,14 @@ private:
             AVLFixBalance(cur_node);
             cur_node = cur_node->parent_.lock();
         }
-        RecaclBegin();
+        RecalcBegin();
         return true;
     }
-
     void EraseImplementation(std::shared_ptr<Node> delete_node) {
         auto parent = delete_node->parent_.lock();
         std::shared_ptr<Node> child_node;
 
-         //Node doesn't have children
+        // Node doesn't have children
         if (!delete_node->right_ && !delete_node->left_) {
             if (parent) {
                 if (parent->left_ == delete_node) {
@@ -453,8 +439,9 @@ private:
             } else {
                 root_ = nullptr;
             }
-            //Node has only 1 child
-        } else if ((delete_node->right_ && !delete_node->left_) || (!delete_node->right_ && delete_node->left_)) {
+            // Node has only 1 child
+        } else if ((delete_node->right_ && !delete_node->left_) ||
+                   (!delete_node->right_ && delete_node->left_)) {
 
             child_node = delete_node->right_ ? delete_node->right_ : delete_node->left_;
             if (!parent) {
@@ -487,10 +474,19 @@ private:
             parent = parent->parent_.lock();
         }
 
-        RecaclBegin();
+        RecalcBegin();
     }
 
-    //When swap node is child
+    // Set begin_ after modification
+    void RecalcBegin() {
+        auto node = root_;
+        while (node->left_) {
+            node = node->left_;
+        }
+        begin_ = node;
+    }
+
+    // When swap node is child
     void SwapWithChild(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
         auto parent = from_node->parent_.lock();
         if (parent) {
@@ -509,8 +505,7 @@ private:
             from_node->left_->parent_ = swap_node;
         }
     }
-
-    //When swap node is not child
+    // When swap node is not child
     void SwapWithOffspring(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
         auto from_parent = from_node->parent_.lock();
         if (from_parent) {
@@ -540,4 +535,3 @@ private:
         }
     }
 };
-

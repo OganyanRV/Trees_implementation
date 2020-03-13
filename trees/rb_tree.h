@@ -57,7 +57,7 @@ public:
             Insert(*cur);
         }
     }
-    RBTree(std::initializer_list<T> list)  : RBTree() {
+    RBTree(std::initializer_list<T> list) : RBTree() {
         for (const T& value : list) {
             Insert(value);
         }
@@ -65,7 +65,7 @@ public:
 
     RBTree(const RBTree& other) : RBTree() {
         for (const T& value : other) {
-                Insert(value);
+            Insert(value);
         }
     }
     RBTree(RBTree&& other) noexcept : RBTree() {
@@ -85,7 +85,7 @@ public:
         begin_ = end_;
         size_ = 0;
         for (const T& value : other) {
-                Insert(value);
+            Insert(value);
         }
         return *this;
     }
@@ -143,7 +143,6 @@ public:
             ++size_;
         }
     }
-
     void Erase(const T& value) override {
         auto nodeInTree = std::static_pointer_cast<RBTreeItImpl>(Find(value));
         if (nodeInTree->IsEqual(End())) {
@@ -161,38 +160,15 @@ public:
         size_ = 0;
     }
 
-    void CheckRB()  {
+    void CheckRB() const {
         std::vector<int> blackHeight;
-        CheckRBRec(root_, blackHeight, 0);
+        CheckRBRecursive(root_, blackHeight, 0);
 
         blackHeight.erase(std::unique(blackHeight.begin(), blackHeight.end()), blackHeight.end());
         if (blackHeight.size() != 1) {
             throw std::runtime_error("Black height is different");
         }
     }
-
-    void CheckRBRec(std::shared_ptr<Node> from, std::vector<int>& blackHeight, int bh) {
-        auto parent = from->parent_.lock();
-        if (parent) {
-            if (parent->is_red_ && from->is_red_) {
-                throw std::runtime_error("Two red nodes in a row");
-            }
-        }
-        if (!from->is_red_) {
-            ++bh;
-        }
-        if (!from->left_) {
-            blackHeight.push_back(bh);
-        } else {
-            CheckRBRec(from->left_, blackHeight, bh);
-        }
-        if (!from->right_) {
-            blackHeight.push_back(bh);
-        } else {
-            CheckRBRec(from->right_, blackHeight, bh);
-        }
-    }
-
 
 private:
     std::shared_ptr<Node> begin_;
@@ -208,7 +184,7 @@ private:
     class RBTreeItImpl : public BaseImpl {
     public:
         RBTreeItImpl() = delete;
-        explicit RBTreeItImpl(std::shared_ptr<Node> pointer)  : it_(pointer) {
+        explicit RBTreeItImpl(std::shared_ptr<Node> pointer) : it_(pointer) {
         }
         RBTreeItImpl(const RBTreeItImpl& other) : it_(other.it_) {
         }
@@ -218,7 +194,7 @@ private:
         }
 
         void Increment() override {
-            if (!(it_->value_)) {
+            if (!it_->value_) {
                 throw std::runtime_error("Index out of range while increasing");
             }
             if (it_->right_) {
@@ -228,14 +204,13 @@ private:
                 }
             } else {
                 auto parent = it_->parent_.lock();
-                while (parent && (parent->right_ == it_)) {
+                while (parent && parent->right_ == it_) {
                     it_ = parent;
                     parent = it_->parent_.lock();
                 }
                 it_ = parent;
             }
         }
-
         void Decrement() override {
             if (it_->left_) {
                 it_ = it_->left_;
@@ -262,8 +237,7 @@ private:
             }
             return it_->value_.value();
         }
-
-        const T *Arrow() const override {
+        const T* Arrow() const override {
             if (it_ && !it_->value_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
@@ -298,7 +272,8 @@ private:
      * ---------------------------------------------------
      */
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const std::optional<T>& value) const {
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
+                                            const std::optional<T>& value) const {
 
         if (!from)
             return End();
@@ -310,7 +285,6 @@ private:
             return std::make_shared<RBTreeItImpl>(from);
         }
     };
-
     static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
                                                          const std::optional<T>& value) {
         if (value < from->value_) {
@@ -331,21 +305,32 @@ private:
             return std::make_shared<RBTreeItImpl>(from);
         }
     }
-
-
-    //Set begin_ after modification
-    void RecaclBegin()  {
-        auto node = root_;
-        while (node->left_) {
-            node = node->left_;
+    void CheckRBRecursive(std::shared_ptr<Node> from, std::vector<int>& blackHeight, int bh) const {
+        auto parent = from->parent_.lock();
+        if (parent) {
+            if (parent->is_red_ && from->is_red_) {
+                throw std::runtime_error("Two red nodes in a row");
+            }
         }
-        begin_ = node;
+        if (!from->is_red_) {
+            ++bh;
+        }
+        if (!from->left_) {
+            blackHeight.push_back(bh);
+        } else {
+            CheckRBRecursive(from->left_, blackHeight, bh);
+        }
+        if (!from->right_) {
+            blackHeight.push_back(bh);
+        } else {
+            CheckRBRecursive(from->right_, blackHeight, bh);
+        }
     }
 
     bool InsertImplementation(const std::shared_ptr<Node>& new_node) {
         if (!root_) {
             root_ = new_node;
-            RecaclBegin();
+            RecalcBegin();
             return true;
         }
 
@@ -359,7 +344,7 @@ private:
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
             } else {
-                RecaclBegin();
+                RecalcBegin();
                 return false;
             }
         }
@@ -372,10 +357,9 @@ private:
         new_node->parent_ = cur_node;
         RBFixBalanceAfterInsert(new_node);
 
-        RecaclBegin();
+        RecalcBegin();
         return true;
     }
-
     void RBFixBalanceAfterInsert(std::shared_ptr<Node> from) {
         // Node doesn't have a parent
         if (from->parent_.expired()) {
@@ -400,7 +384,7 @@ private:
         if (grandparent->right_ == parent) {
             auto uncle = grandparent->left_;
             // Uncle is red
-            if (uncle && uncle->is_red_ == true) {
+            if (uncle && uncle->is_red_) {
                 parent->is_red_ = false;
                 uncle->is_red_ = false;
                 grandparent->is_red_ = true;
@@ -448,11 +432,11 @@ private:
                 grandparent->is_red_ = true;
                 return;
             }
-         // Node is right
+            // Node is right
         } else {
             auto uncle = grandparent->right_;
             // Uncle is red
-            if (uncle && uncle->is_red_ == true) {
+            if (uncle && uncle->is_red_) {
                 parent->is_red_ = false;
                 uncle->is_red_ = false;
                 grandparent->is_red_ = true;
@@ -506,7 +490,7 @@ private:
     void EraseImplementation(std::shared_ptr<Node> delete_node) {
         auto parent = delete_node->parent_.lock();
 
-        //Node doesn't have children
+        // Node doesn't have children
         if (!delete_node->right_ && !delete_node->left_) {
             RBFixBalanceAfterErase(delete_node);
             if (parent) {
@@ -518,23 +502,24 @@ private:
             } else {
                 root_ = nullptr;
             }
-        } else if ((delete_node->right_&&!delete_node->left_) || (!delete_node->right_&&delete_node->left_)) {
+        } else if ((delete_node->right_ && !delete_node->left_) ||
+                   (!delete_node->right_ && delete_node->left_)) {
 
             auto child_node = delete_node->right_ ? delete_node->right_ : delete_node->left_;
             if (!parent) {
                 root_ = child_node;
                 child_node->parent_ = std::weak_ptr<Node>();
             } else {
-                if(parent->left_ == delete_node) {
+                if (parent->left_ == delete_node) {
                     parent->left_ = child_node;
                 } else {
                     parent->right_ = child_node;
                 }
                 child_node->parent_ = parent;
 
-                if (!delete_node->is_red_ && child_node->is_red_ ) {
-                    child_node->is_red_ =  false;
-                } else if  (!delete_node->is_red_ && !child_node->is_red_) {
+                if (!delete_node->is_red_ && child_node->is_red_) {
+                    child_node->is_red_ = false;
+                } else if (!delete_node->is_red_ && !child_node->is_red_) {
 
                     RBFixBalanceAfterErase(child_node);
                 }
@@ -555,7 +540,106 @@ private:
             return;
         }
 
-        RecaclBegin();
+        RecalcBegin();
+    }
+    void RBFixBalanceAfterErase(std::shared_ptr<Node> from) {
+        while (!from->is_red_ && root_ != from) {
+            auto parent = from->parent_.lock();
+            if (!parent) {
+                return;
+            }
+            auto sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
+            if (!sibling) {
+                return;
+            }
+            auto sibling_right = sibling->right_;
+            auto sibling_left = sibling->left_;
+            if (parent->left_ == from) {
+                // Brother is red;
+                if (sibling->is_red_) {
+                    sibling->is_red_ = false;
+                    parent->is_red_ = true;
+                    LeftRotate(parent);
+                    sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
+                    sibling_right = sibling->right_;
+                    sibling_left = sibling->left_;
+                }
+                // Brother and children are black
+                if ((!sibling_left || !sibling_left->is_red_) &&
+                    (!sibling_right || !sibling_right->is_red_)) {
+                    sibling->is_red_ = true;
+                    from = parent;
+                } else {
+                    if (!sibling_right || !sibling_right->is_red_) {
+                        sibling->is_red_ = true;
+                        sibling_left->is_red_ = false;
+                        RightRotate(sibling);
+                        sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
+
+                        if (sibling->right_) {
+                            sibling_right = sibling->right_;
+                        } else {
+                            sibling_right = nullptr;
+                        }
+                        if (sibling->left_) {
+                            sibling_left = sibling->left_;
+                        } else {
+                            sibling_left = nullptr;
+                        }
+                    }
+                    sibling->is_red_ = parent->is_red_;
+                    parent->is_red_ = false;
+                    if (sibling_right) {
+                        sibling->right_->is_red_ = false;
+                    }
+                    LeftRotate(parent);
+                    from = root_;
+                }
+            } else {
+                // Brother is red;
+                if (sibling->is_red_) {
+                    sibling->is_red_ = false;
+                    parent->is_red_ = true;
+                    RightRotate(parent);
+                    sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
+                    sibling_right = sibling->right_;
+                    sibling_left = sibling->left_;
+                }
+                // Brother is black
+                if ((!sibling_left || !sibling_left->is_red_) &&
+                    (!sibling_right || !sibling_right->is_red_)) {
+                    sibling->is_red_ = true;
+                    from = parent;
+                } else {
+                    if (!sibling_left || !sibling_left->is_red_) {
+                        sibling->is_red_ = true;
+                        sibling_right->is_red_ = false;
+                        LeftRotate(sibling);
+                        sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
+
+                        if (sibling) {
+                            sibling_right = sibling->right_;
+                        } else {
+                            sibling_right = nullptr;
+                        }
+                        if (sibling) {
+                            sibling_left = sibling->left_;
+                        } else {
+                            sibling_left = nullptr;
+                        }
+                    }
+                    sibling->is_red_ = parent->is_red_;
+                    parent->is_red_ = false;
+                    if (sibling_left) {
+                        sibling_left->is_red_ = false;
+                    }
+                    RightRotate(parent);
+                    from = root_;
+                }
+            }
+        }
+        from->is_red_ = false;
+        root_->is_red_ = false;
     }
 
     void SwapWithChild(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
@@ -586,12 +670,8 @@ private:
 
         from_node->left_ = nullptr;
 
-        bool color = swap_node->is_red_;
-        swap_node->is_red_ = from_node->is_red_;
-        from_node->is_red_ = color;
+        std::swap(swap_node->is_red_, from_node->is_red_);
     }
-
-    //When swap node is not child
     void SwapWithOffspring(std::shared_ptr<Node> from_node, std::shared_ptr<Node> swap_node) {
         auto from_parent = from_node->parent_.lock();
         if (from_parent) {
@@ -630,109 +710,7 @@ private:
 
         from_node->left_ = nullptr;
 
-        bool color = swap_node->is_red_;
-        swap_node->is_red_ = from_node->is_red_;
-        from_node->is_red_ = color;
-    }
-
-    void RBFixBalanceAfterErase(std::shared_ptr<Node> from) {
-        while (!from->is_red_ && root_ != from) {
-            auto parent = from->parent_.lock();
-            if (!parent) {
-                return;
-            }
-            auto sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
-            if (!sibling) {
-                return;
-            }
-            auto sibling_right = sibling->right_;
-            auto sibling_left = sibling->left_;
-            if (parent->left_ == from) {
-                //Brother is red;
-                if (sibling->is_red_) {
-                    sibling->is_red_ = false;
-                    parent->is_red_ = true;
-                    LeftRotate(parent);
-                    sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
-                    sibling_right = sibling->right_;
-                    sibling_left = sibling->left_;
-                }
-                //Brother and children are black
-                if ((!sibling_left || !(sibling_left->is_red_)) &&
-                    (!sibling_right || !(sibling_right->is_red_))) {
-                    sibling->is_red_ = true;
-                    from = parent;
-                } else {
-                    if (!sibling_right || !(sibling_right->is_red_)) {
-                        sibling->is_red_ = true;
-                        sibling_left->is_red_ = false;
-                        RightRotate(sibling);
-                        sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
-
-                        if (sibling->right_) {
-                            sibling_right = sibling->right_;
-                        } else {
-                            sibling_right = nullptr;
-                        }
-                        if (sibling->left_) {
-                            sibling_left = sibling->left_;
-                        } else {
-                            sibling_left = nullptr;
-                        }
-                    }
-                    sibling->is_red_ = parent->is_red_;
-                    parent->is_red_ = false;
-                    if (sibling_right) {
-                        sibling->right_->is_red_ = false;
-                    }
-                    LeftRotate(parent);
-                    from = root_;
-                }
-            } else {
-                //Brother is red;
-                if (sibling->is_red_) {
-                    sibling->is_red_ = false;
-                    parent->is_red_ = true;
-                    RightRotate(parent);
-                    sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
-                    sibling_right = sibling->right_;
-                    sibling_left = sibling->left_;
-                }
-                //Brother is black
-                if ((!sibling_left || !(sibling_left->is_red_)) &&
-                    (!sibling_right || !(sibling_right->is_red_))) {
-                    sibling->is_red_ = true;
-                    from = parent;
-                } else {
-                    if (!sibling_left || !(sibling_left->is_red_)) {
-                        sibling->is_red_ = true;
-                        sibling_right->is_red_ = false;
-                        LeftRotate(sibling);
-                        sibling = (parent->left_ == from) ? parent->right_ : parent->left_;
-
-                        if (sibling) {
-                            sibling_right = sibling->right_;
-                        } else {
-                            sibling_right = nullptr;
-                        }
-                        if (sibling) {
-                            sibling_left = sibling->left_;
-                        } else {
-                            sibling_left = nullptr;
-                        }
-                    }
-                    sibling->is_red_ = parent->is_red_;
-                    parent->is_red_ = false;
-                    if (sibling_left) {
-                        sibling_left->is_red_ = false;
-                    }
-                    RightRotate(parent);
-                    from = root_;
-                }
-            }
-        }
-        from->is_red_ = false;
-        root_->is_red_ = false;
+        std::swap(swap_node->is_red_, from_node->is_red_);
     }
 
     void LeftRotate(std::shared_ptr<Node>& from) {
@@ -761,10 +739,9 @@ private:
         if (next_node) {
             next_node->parent_ = from;
         }
-        from ->parent_ = right_node;
+        from->parent_ = right_node;
         from->right_ = next_node;
     }
-
     void RightRotate(std::shared_ptr<Node>& from) {
         auto parent = from->parent_.lock();
         auto left_node = from->left_;
@@ -792,7 +769,15 @@ private:
         if (prev_node) {
             prev_node->parent_ = from;
         }
-        from ->parent_ = left_node;
+        from->parent_ = left_node;
         from->left_ = prev_node;
+    }
+    // Set begin_ after modification
+    void RecalcBegin() {
+        auto node = root_;
+        while (node->left_) {
+            node = node->left_;
+        }
+        begin_ = node;
     }
 };

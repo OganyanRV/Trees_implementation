@@ -8,8 +8,6 @@
 template <class T>
 class ITree;
 
-
-
 template <class T>
 class SplayTree : public ITree<T> {
 private:
@@ -127,7 +125,7 @@ public:
         return const_cast<SplayTree<T>*>(this)->LowerBoundRecursive(root_, val);
     }
 
-    void Insert(const T& value) override {       
+    void Insert(const T& value) override {
         std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
         if (InsertImpl(root_, new_node)) {
             ++size_;
@@ -166,9 +164,11 @@ private:
     public:
         SplayTreeItImpl() = delete;
 
-        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) : it_(ptr) {}
+        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) : it_(ptr) {
+        }
 
-        SplayTreeItImpl(const SplayTreeItImpl& other) : it_(other.it_) {}
+        SplayTreeItImpl(const SplayTreeItImpl& other) : it_(other.it_) {
+        }
 
         std::shared_ptr<BaseImpl> Clone() const override {
             return std::make_shared<SplayTreeItImpl>(*this);
@@ -235,7 +235,6 @@ private:
             }
             return it_ == casted->it_;
         }
-        
     };
 
     std::shared_ptr<BaseImpl> Begin() const override {
@@ -246,7 +245,8 @@ private:
         return std::make_shared<SplayTreeItImpl>(end_);
     }
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from, const std::optional<T>& value) {
+    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
+                                            const std::optional<T>& value) {
         if (!from) {
             return End();
         }
@@ -260,7 +260,8 @@ private:
         }
     }
 
-    std::shared_ptr<Node> Merge(std::shared_ptr<Node> left_subtree, std::shared_ptr<Node> right_subtree) {
+    std::shared_ptr<Node> Merge(std::shared_ptr<Node> left_subtree,
+                                std::shared_ptr<Node> right_subtree) {
         if (!right_subtree) {
             return left_subtree;
         } else if (!left_subtree) {
@@ -330,7 +331,7 @@ private:
     }
 
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                            const std::optional<T>& value) {
+                                                  const std::optional<T>& value) {
         if (value < from->value_) {
             if (from->left_) {
                 return LowerBoundRecursive(from->left_, value);

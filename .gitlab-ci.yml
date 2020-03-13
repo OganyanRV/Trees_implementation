@@ -17,9 +17,9 @@ build:
     - cd build
     - cmake ../
     - make
-    - ./run_tests
+    - ./run_all_tests
     - touch report.xml
-    - ./run_tests -r junit > report.xml
+    - ./run_all_tests -r junit > report.xml
 
   artifacts:
     reports:

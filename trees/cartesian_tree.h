@@ -9,11 +9,6 @@ template <class T>
 class ITree;
 
 template <class T>
-bool operator<(const std::optional<T>& lhs, const std::optional<T>& rhs) {
-    return (lhs && (!rhs || *lhs < *rhs));
-}
-
-template <class T>
 class CartesianTree : public ITree<T> {
 private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
