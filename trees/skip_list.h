@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stack>
 
 template <class T>
 class ITree;
@@ -18,7 +19,7 @@ public:
     public:
         static uint32_t Next() {
             static Random rand = Random();
-            return rand.dist_(rand.gen_);
+            return rand.dist_(rand.gen_)&1;
         }
 
     private:
@@ -271,6 +272,9 @@ private:
         if (from->right_->value_ < value) {
             return EraseRecursive(from->right_, value);
         }
+        if (value < from->right_->value_) {
+            return false;
+        }
         if (from->value_ == value) {
             from->left_->right_ = from->right_;
             from->right_->left_ = from->left_;
@@ -282,26 +286,6 @@ private:
         if (from->down_) {
             return EraseRecursive(from->down, value);
         }
-    }
-    bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        if (from.value_ == std::optional<T>::max()) {
-            return false;
-        }
-        if (from.value_ < value) {
-            return FindRecursive(from->right_, value);
-        }
-        if (from.value_ == value) {
-            from.left_.right_ = from.right_;
-            from.right_.left_ = from.left_;
-            if (!from.down_) {
-                return true;
-            }
-            return FindRecursive(from.down, value);
-        }
-        if (from.down_) {
-            return FindRecursive(from.down, value);
-        }
-        return false;
     }
 
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
@@ -321,38 +305,55 @@ private:
 
     bool InsertRecursive(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
         // бред написал тупой
-        if (from->value_ == std::optional<T>::max() || from->value_ == new_node->value_) {
-            return false;
-        }
-        while (from->down) {
-            from = from->down_;
-        }
-        if (from.value_ < new_node->value_) {
-            return InsertRecursive(from->right_, new_node->value_);
-        }
-        if (!from.down_) {
-            if (from->left_.lock()) {
-                from->left_->right = new_node;
+        std::stack<std::shared_ptr<BaseImpl>> node_path;
+        while (1) {
+            if (from->value_ == std::optional<T>::max() || from->value_ == new_node->value_) {
+                return false;
             }
-            if (from->right_.lock()) {
-                from->right->left_ = new_node;
+            else if (from->right_->value_ < new_node.value_) {
+                from=from->right_;
             }
-            from if (coin_flip) {
-                auto up_node = std::make_shared<Node>(new_node);
-                up_node->down_ = new_node;
-                BuildLvl(up_node);
+            else {
+                node_path.push(from);
+                if (from->down_.lock()) {
+                    from = from->down_;
+                }
+                else {
+                    new_node->left_=from;
+                    new_node->right_=from->right_;
+                    from->right_->left_=new_node;
+                    from->right_=new_node;
+                    BuildLvl(node_path, new_node);
+                    return true;
+                }
             }
-            return true;
         }
-        return InsertRecursive(from->down_, new_node->value_);
     }
 
-    void BuildLvl(std::shared_ptr<Node> new_node) {
-
-         if (coin_flip) {
-            auto up_node = std::make_shared<Node>(new_node);
-            up_node->down_ = new_node;
-            BuildLvl(up_node);
+    void BuildLvl(std::stack<std::shared_ptr<BaseImpl>> node_path, std::shared_ptr<Node> from) {
+    Random coin_flip;
+         if (coin_flip.Next()) {
+             std::shared_ptr<Node> up_node;
+             up_node->down_=from;
+             if (node_path.size()!=0) {
+                 auto prev = node_path.top();
+                 up_node->left_=prev;
+                 up_node->right_=prev->right_;
+                 prev->right_->left_=up_node;
+                 prev->right_=up_node;
+                 node_path.pop();
+                 Buildlvl(node_path,up_node);
+             }
+             else {
+                 up_node->down_=from;
+                 std::shared_ptr<Node> new_head, new_end;
+                 new_head->down_=head_;
+                 new_head->right_=up_node;
+                 up_node->right_=new_end;
+                 new_end->down_ = end_;
+                 new_end->left_=up_node;
+                 Buildlvl(node_path,up_node);
+             }
         }
     }
 
