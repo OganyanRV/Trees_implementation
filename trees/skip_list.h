@@ -19,7 +19,7 @@ public:
     public:
         static uint32_t Next() {
             static Random rand = Random();
-            return rand.dist_(rand.gen_)&1;
+            return rand.dist_(rand.gen_);
         }
 
     private:
@@ -27,7 +27,7 @@ public:
             std::random_device device;
             gen_ = std::mt19937(device());
             dist_ =
-                std::uniform_int_distribution<uint32_t>(1, std::numeric_limits<uint32_t>::max());
+                std::uniform_int_distribution<uint32_t>(0, 1);
         }
 
         std::mt19937 gen_;
@@ -40,36 +40,29 @@ public:
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
-            up_ = nullptr;
-            value_ = std::nullopt;
         }
 
         explicit Node(const T& value) : value_(value) {
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
-            up_ = nullptr;
         }
 
         Node(const Node& other) : value_(other.value_) {
             left_ = other.left_;
             down_ = other.down_;
             right_ = other.right_;
-            up_ = other.up_;
         }
 
         std::shared_ptr<Node> down_;
         std::weak_ptr<Node> left_;
-        std::shared_ptr<Node> up_;
         std::shared_ptr<Node> right_;
-        std::optional<T> value_;
+        T value_;
     };
 
     SkipList() {
         head_ = std::make_shared<Node>();
-        head_->value_ = std::numeric_limits<int>::min();
         end_ = std::make_shared<Node>();
-        end_->value_ = std::numeric_limits<int>::max();
         head_->right_ = end_;
         end_->left_ = head_;
         size_ = 0;
@@ -102,9 +95,7 @@ public:
             return *this;
         }
         head_ = std::make_shared<Node>();
-        head_->value_ = std::numeric_limits<int>::min();
         end_ = std::make_shared<Node>();
-        end_->value_ = std::numeric_limits<int>::max();
         head_->right_ = end_;
         end_->left_ = head_;
         size_ = 0;
@@ -139,12 +130,10 @@ public:
     }
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
-        std::optional<T> val(value);
-        return FindRecursive(head_, val);
+        return FindRecursive(head_, value);
     }
 
     void Erase(const T& value) override {
-        std::optional<T> val(value);
         if (EraseImpl(head_, value)) {
             --size_;
         }
@@ -195,29 +184,23 @@ private:
         }
 
         void Increment() override {
-            if (it_->value_ == std::numeric_limits<int>::max()) {
-                throw std::runtime_error("Index out of range while increasing");
-            }
             while (it_->down_) {
                 it_ = it_->down_;
             }
-            it_ = it_->right_;
-            while (it_->up_) {
-                it_ = it_->up;
+            if (!it_->right_) {
+                throw std::runtime_error("Index out of range while increasing");
             }
+            it_ = it_->right_;
         }
 
         void Decrement() override {
             while (it_->down_) {
                 it_ = it_->down_;
             }
-            it_ = it_->left_;
-            while (it_->up_) {
-                it_ = it_->up;
-            }
-            if (it_->value_ == std::numeric_limits<int>::min()) {
+            if (!it_->left_) {
                 throw std::runtime_error("Index out of range while increasing");
             }
+            it_ = it_->left_;
         }
 
         const T Dereferencing() const override {
@@ -253,7 +236,7 @@ private:
 
     std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
                                             const std::optional<T>& value) {
-        if (from.value_ == std::optional<T>::max()) {
+        if (!from->right_) {
             return End();
         }
         if (from->right_->value_ < value) {
@@ -266,7 +249,7 @@ private:
     }
 
     bool EraseRecursive(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        if (from->value_ == std::optional<T>::max()) {
+        if (!from->right_) {
             return false;
         }
         if (from->right_->value_ < value) {
@@ -290,7 +273,7 @@ private:
 
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
                                                   const std::optional<T>& value) {
-        if (from->value_ == std::optional<T>::max()) {
+        if (!from->right_) {
             return End();
         }
         if (from->right_->value_ < value) {
@@ -307,7 +290,7 @@ private:
         // бред написал тупой
         std::stack<std::shared_ptr<BaseImpl>> node_path;
         while (1) {
-            if (from->value_ == std::optional<T>::max() || from->value_ == new_node->value_) {
+            if (!from->right_ || from->value_ == new_node->value_) {
                 return false;
             }
             else if (from->right_->value_ < new_node.value_) {
@@ -342,7 +325,6 @@ private:
                  prev->right_->left_=up_node;
                  prev->right_=up_node;
                  node_path.pop();
-                 Buildlvl(node_path,up_node);
              }
              else {
                  up_node->down_=from;
@@ -352,8 +334,8 @@ private:
                  up_node->right_=new_end;
                  new_end->down_ = end_;
                  new_end->left_=up_node;
-                 Buildlvl(node_path,up_node);
              }
+             Buildlvl(node_path,up_node);
         }
     }
 
