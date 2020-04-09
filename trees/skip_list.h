@@ -6,6 +6,7 @@
 #include <optional>
 #include <stack>
 
+
 template <class T>
 class ITree;
 
@@ -40,6 +41,7 @@ public:
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
+            value_ = std::nullopt;
         }
 
         explicit Node(const T& value) : value_(value) {
@@ -57,7 +59,7 @@ public:
         std::shared_ptr<Node> down_;
         std::weak_ptr<Node> left_;
         std::shared_ptr<Node> right_;
-        T value_;
+        std::optional<T> value_;
     };
 
     SkipList() {
@@ -130,10 +132,12 @@ public:
     }
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
-        return FindRecursive(head_, value);
+        std::optional<T> val(value);
+        return FindRecursive(head_, val);
     }
 
     void Erase(const T& value) override {
+        std::optional<T> val(value);
         if (EraseImpl(head_, value)) {
             --size_;
         }
@@ -338,5 +342,5 @@ private:
              Buildlvl(node_path,up_node);
         }
     }
-
 };
+
