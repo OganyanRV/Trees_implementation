@@ -14,10 +14,10 @@ class SkipList : public ITree<T> {
 private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
-    template <class T2>
+    template <class T>
     class Optional {
     private:
-        std::shared_ptr<T2> value;
+        std::shared_ptr<T> value;
         char info;
         Optional(bool is_begin = false) {
             if (is_begin) {
@@ -34,7 +34,7 @@ private:
         void setInfo(char newinfo) {
             this->info=newinfo;
         }
-         bool operator<(const Optional<T2>& rhs) {
+         bool operator<(const Optional<T>& rhs) {
              if (this->info == 'v') {
                 if (rhs.info == 'v') {
                     return *(this->value) < *(rhs.value);
@@ -133,7 +133,7 @@ public:
     }
 
     SkipList& operator=(const SkipList& other) {
-        if (head_ == head_.root_) {
+        if (head_ == other.head_) {
             return *this;
         }
         head_ = std::make_shared<Node>();
@@ -148,7 +148,7 @@ public:
     }
 
     SkipList& operator=(SkipList&& other) noexcept {
-        if (head_ == head_.root_) {
+        if (head_ == other.head_) {
             return *this;
         }
         std::swap(head_, other.head_);
