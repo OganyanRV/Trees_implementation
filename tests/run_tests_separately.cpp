@@ -24,7 +24,7 @@ TEST_CASE("Test Red-Black") {
 
 TEST_CASE("Test Skip list") {
     TestFramework framework;
-    // framework.RunAll(Substr("Skip list));
+    // framework.RunAll(Substr("Skip list"));
 }
 
 TEST_CASE("Test Splay") {
