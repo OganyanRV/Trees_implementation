@@ -193,7 +193,6 @@ public:
     void Clear() override {
         head_ = std::make_shared<Node>();
         end_ = head_;
-        begin=head_;
         size_ = 0;
     }
 
@@ -323,8 +322,9 @@ private:
             return LowerBoundRecursive(from->right_, value);
         }
         if (!from->down_) {
-            auto tmp = std::make_shared<SkipListItImpl>(from);
-            return tmp->Increment();
+           //auto tmp = std::make_shared<SkipListItImpl>(from);
+            //return tmp->Increment();
+            return from->right_;
         }
         return LowerBoundRecursive(from->down_, value);
     }
@@ -333,18 +333,22 @@ private:
         // бред написал тупой
         std::stack<std::shared_ptr<BaseImpl>> node_path;
         while (1) {
-            if (!from->right_ || from->value_ == new_node->value_) {
+            if (!from->right_) {
+                //этого случая даже не будет
                 return false;
             }
             else if (from->right_->value_ < new_node.value_) {
                 from=from->right_;
             }
             else {
-                node_path.push(from);
                 if (from->down_.lock()) {
+                    node_path.push(from);
                     from = from->down_;
                 }
                 else {
+                    if (new_node.value_ < from->right_->value_) {
+                        return false;
+                    }
                     new_node->left_=from;
                     new_node->right_=from->right_;
                     from->right_->left_=new_node;
