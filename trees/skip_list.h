@@ -6,7 +6,6 @@
 #include <optional>
 #include <stack>
 
-
 template <class T>
 class ITree;
 
@@ -15,7 +14,37 @@ class SkipList : public ITree<T> {
 private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
-public:
+    template <class T>
+    class Optional {
+    private:
+        std::shared_ptr<T> value;
+        char info;
+        Optional(bool is_begin = false) {
+            if (is_begin) {
+                info = 'b';
+            } else {
+                info = 'e';
+            }
+        }
+        Optional(const T& value) {
+            value = std::make_shared<T>(value);
+            info = 'v';
+        }
+    public:
+         bool operator<(const Optional<T>& rhs) {
+             if (this->info == 'v') {
+                if (rhs.info == 'v') {
+                    return *(this->value) < *(rhs.value);
+                } else {
+                    return rhs.info != 'b';
+                }
+            } else if (this->info == 'b') {
+                return rhs.info == 'v';
+            } else {
+                return rhs.info != 'v';
+            }
+        }
+    };
     class Random {
     public:
         static uint32_t Next() {
@@ -30,12 +59,13 @@ public:
             dist_ =
                 std::uniform_int_distribution<uint32_t>(0, 1);
         }
-
         std::mt19937 gen_;
         std::uniform_int_distribution<uint32_t> dist_;
     };
 
+
 public:
+
     struct Node {
         Node() {
             left_ = std::weak_ptr<Node>();
@@ -59,7 +89,7 @@ public:
         std::shared_ptr<Node> down_;
         std::weak_ptr<Node> left_;
         std::shared_ptr<Node> right_;
-        std::optional<T> value_;
+        Optional<T> value_;
     };
 
     SkipList() {
@@ -84,11 +114,16 @@ public:
     }
 
     SkipList(const SkipList& other) : SkipList() {
+        for (const T &value : other) {
+            Insert(value);
+        }
+
+    }
+    SkipList(SkipList&& other) noexcept {
         std::swap(head_, other.head_);
         std::swap(end_, other.end_);
         std::swap(size_, other.size_);
     }
-    SkipList(SkipList&& other) noexcept;
     SkipList(std::shared_ptr<ITree<T>> other) : SkipList(*dynamic_cast<SkipList<T>*>(other.get())) {
     }
 
@@ -158,6 +193,7 @@ public:
     void Clear() override {
         head_ = std::make_shared<Node>();
         end_ = head_;
+        begin=head_;
         size_ = 0;
     }
 
@@ -247,7 +283,10 @@ private:
             return FindRecursive(from->right_, value);
         }
         if (!from.down_) {
-            return from;
+            if (value < from->right_->value_ ) {
+                return End();
+            }
+            return from->right_;
         }
         return FindRecursive(from.down, value);
     }
@@ -259,22 +298,22 @@ private:
         if (from->right_->value_ < value) {
             return EraseRecursive(from->right_, value);
         }
-        if (value < from->right_->value_) {
-            return false;
-        }
-        if (from->value_ == value) {
+        if (!from.down_) {
+            if (value < from->right_->value_ ) {
+                return false;
+            }
             from->left_->right_ = from->right_;
             from->right_->left_ = from->left_;
-            if (!from->down_) {
-                return true;
+            while(from->down_.lock()){
+                from=from->down_;
+                from->left_->right_ = from->right_;
+                from->right_->left_ = from->left_;
             }
-            return EraseRecursive(from->down, value);
+            return true;
         }
-        if (from->down_) {
-            return EraseRecursive(from->down, value);
-        }
+        return EraseRecursive(from->down, value);
     }
-
+// ne smotrel
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
                                                   const std::optional<T>& value) {
         if (!from->right_) {
