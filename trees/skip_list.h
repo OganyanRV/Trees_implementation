@@ -14,10 +14,10 @@ class SkipList : public ITree<T> {
 private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
-    template <class T>
+    template <class T2>
     class Optional {
     private:
-        std::shared_ptr<T> value;
+        std::shared_ptr<T2> value;
         char info;
         Optional(bool is_begin = false) {
             if (is_begin) {
@@ -31,7 +31,10 @@ private:
             info = 'v';
         }
     public:
-         bool operator<(const Optional<T>& rhs) {
+        void setInfo(char newinfo) {
+            this->info=newinfo;
+        }
+         bool operator<(const Optional<T2>& rhs) {
              if (this->info == 'v') {
                 if (rhs.info == 'v') {
                     return *(this->value) < *(rhs.value);
@@ -71,7 +74,7 @@ public:
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
-            value_ = std::nullopt;
+            //value_ = std::nullopt;
         }
 
         explicit Node(const T& value) : value_(value) {
@@ -95,6 +98,8 @@ public:
     SkipList() {
         head_ = std::make_shared<Node>();
         end_ = std::make_shared<Node>();
+        head_->value_.setInfo('b');
+        end_->value_.setInfo('e');
         head_->right_ = end_;
         end_->left_ = head_;
         size_ = 0;
@@ -381,6 +386,8 @@ private:
                  up_node->right_=new_end;
                  new_end->down_ = end_;
                  new_end->left_=up_node;
+                 new_head->value_.setInfo('b');
+                 new_end->value_.setInfo('e');
              }
              Buildlvl(node_path,up_node);
         }
