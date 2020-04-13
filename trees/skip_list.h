@@ -14,10 +14,10 @@ class SkipList : public ITree<T> {
 private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
-    template <class T>
+    template <class T2>
     class Optional {
     private:
-        std::shared_ptr<T> value;
+        std::shared_ptr<T2> value;
         char info;
         Optional(bool is_begin = false) {
             if (is_begin) {
@@ -26,7 +26,7 @@ private:
                 info = 'e';
             }
         }
-        Optional(const T& value) {
+        Optional(const T2& value) {
             value = std::make_shared<T>(value);
             info = 'v';
         }
@@ -34,7 +34,7 @@ private:
         void setInfo(char newinfo) {
             this->info=newinfo;
         }
-         bool operator<(const Optional<T>& rhs) {
+         bool operator<(const Optional<T2>& rhs) {
              if (this->info == 'v') {
                 if (rhs.info == 'v') {
                     return *(this->value) < *(rhs.value);
@@ -74,7 +74,7 @@ public:
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
-            //value_ = std::nullopt;
+            value_();
         }
 
         explicit Node(const T& value) : value_(value) {
@@ -172,19 +172,19 @@ public:
     }
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
-        std::optional<T> val(value);
+        Optional<T> val(value);
         return FindRecursive(head_, val);
     }
 
     void Erase(const T& value) override {
-        std::optional<T> val(value);
+        Optional<T> val(value);
         if (EraseImpl(head_, value)) {
             --size_;
         }
     }
 
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
-        std::optional<T> val(value);
+        Optional<T> val(value);
         return LowerBoundRecursive(head_, val);
     }
 
@@ -248,14 +248,14 @@ private:
         }
 
         const T Dereferencing() const override {
-            if (!it_->value_) {
+            if (!it_->right_ || !it_->left_) {
                 throw std::runtime_error("Index out of range on operator*");
             }
             return *(it_->value_);
         }
 
         const T* Arrow() const override {
-            if (!it_->value_) {
+            if (!it_->right_ || !it_->left_) {
                 throw std::runtime_error("Index out of range on operator->");
             }
             return &(*it_->value_);
@@ -279,7 +279,7 @@ private:
     }
 
     std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
-                                            const std::optional<T>& value) {
+                                            const Optional<T>& value) {
         if (!from->right_) {
             return End();
         }
@@ -295,7 +295,7 @@ private:
         return FindRecursive(from.down, value);
     }
 
-    bool EraseRecursive(std::shared_ptr<Node>& from, const std::optional<T>& value) {
+    bool EraseRecursive(std::shared_ptr<Node>& from, const Optional<T>& value) {
         if (!from->right_) {
             return false;
         }
@@ -319,7 +319,7 @@ private:
     }
 // ne smotrel
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                  const std::optional<T>& value) {
+                                                  const Optional<T>& value) {
         if (!from->right_) {
             return End();
         }
@@ -342,16 +342,16 @@ private:
                 //этого случая даже не будет
                 return false;
             }
-            else if (from->right_->value_ < new_node.value_) {
+            else if (from->right_->value_ < new_node->value_) {
                 from=from->right_;
             }
             else {
-                if (from->down_.lock()) {
+                if (from->down_) {
                     node_path.push(from);
                     from = from->down_;
                 }
                 else {
-                    if (new_node.value_ < from->right_->value_) {
+                    if (new_node->value_ < from->right_->value_) {
                         return false;
                     }
                     new_node->left_=from;
