@@ -11,30 +11,37 @@ class ITree;
 
 template <class T>
 class SkipList : public ITree<T> {
-private:
+public:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
-    template <class T2>
     class Optional {
     private:
-        std::shared_ptr<T2> value;
+        std::shared_ptr<T> value;
         char info;
-        Optional(bool is_begin = false) {
-            if (is_begin) {
-                info = 'b';
-            } else {
-                info = 'e';
-            }
+    public:
+
+        Optional() {
+            info='v';
         }
-        Optional(const T2& value) {
-            value = std::make_shared<T>(value);
+
+        Optional(const T value__) {
+            value = std::make_shared<T>(value__);
             info = 'v';
         }
-    public:
+
         void setInfo(char newinfo) {
             this->info=newinfo;
         }
-         bool operator<(const Optional<T2>& rhs) {
+
+        std::shared_ptr<T> GetValue() {
+            return this->value;
+        }
+
+        char GetInfo() {
+            return this->info;
+        }
+
+         bool operator<(const Optional& rhs) {
              if (this->info == 'v') {
                 if (rhs.info == 'v') {
                     return *(this->value) < *(rhs.value);
@@ -70,11 +77,10 @@ private:
 public:
 
     struct Node {
-        Node() {
+        Node() : value_(){
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
-            value_();
         }
 
         explicit Node(const T& value) : value_(value) {
@@ -92,7 +98,7 @@ public:
         std::shared_ptr<Node> down_;
         std::weak_ptr<Node> left_;
         std::shared_ptr<Node> right_;
-        Optional<T> value_;
+        Optional value_;
     };
 
     SkipList() {
@@ -172,19 +178,19 @@ public:
     }
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
-        Optional<T> val(value);
+        Optional val(value);
         return FindRecursive(head_, val);
     }
 
     void Erase(const T& value) override {
-        Optional<T> val(value);
-        if (EraseImpl(head_, value)) {
+        Optional val(value);
+        if (EraseRecursive(head_, val)) {
             --size_;
         }
     }
 
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
-        Optional<T> val(value);
+        Optional val(value);
         return LowerBoundRecursive(head_, val);
     }
 
@@ -241,24 +247,24 @@ private:
             while (it_->down_) {
                 it_ = it_->down_;
             }
-            if (!it_->left_) {
+            if (!it_->left_.lock()) {
                 throw std::runtime_error("Index out of range while increasing");
             }
-            it_ = it_->left_;
+            it_ = it_->left_.lock();
         }
 
         const T Dereferencing() const override {
-            if (!it_->right_ || !it_->left_) {
+            if (it_->value_.GetInfo()!='v')  {
                 throw std::runtime_error("Index out of range on operator*");
             }
-            return *(it_->value_);
+            return *(it_->value_.GetValue());
         }
 
         const T* Arrow() const override {
-            if (!it_->right_ || !it_->left_) {
+            if (it_->value_.GetInfo()!='v') {
                 throw std::runtime_error("Index out of range on operator->");
             }
-            return &(*it_->value_);
+            return &(*it_->value_.GetValue());
         }
 
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
@@ -279,47 +285,47 @@ private:
     }
 
     std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
-                                            const Optional<T>& value) {
+                                            const Optional& value) {
         if (!from->right_) {
             return End();
         }
         if (from->right_->value_ < value) {
             return FindRecursive(from->right_, value);
         }
-        if (!from.down_) {
+        if (!from->down_) {
             if (value < from->right_->value_ ) {
                 return End();
             }
-            return from->right_;
+            return std::make_shared<SkipListItImpl>(from->right_);
         }
-        return FindRecursive(from.down, value);
+        return FindRecursive(from->down_, value);
     }
 
-    bool EraseRecursive(std::shared_ptr<Node>& from, const Optional<T>& value) {
+    bool EraseRecursive(std::shared_ptr<Node>& from, const Optional& value) {
         if (!from->right_) {
             return false;
         }
         if (from->right_->value_ < value) {
             return EraseRecursive(from->right_, value);
         }
-        if (!from.down_) {
+        if (!from->down_) {
             if (value < from->right_->value_ ) {
                 return false;
             }
-            from->left_->right_ = from->right_;
+            from->left_.lock()->right_ = from->right_;
             from->right_->left_ = from->left_;
-            while(from->down_.lock()){
+            while(from->down_){
                 from=from->down_;
-                from->left_->right_ = from->right_;
+                from->left_.lock()->right_ = from->right_;
                 from->right_->left_ = from->left_;
             }
             return true;
         }
-        return EraseRecursive(from->down, value);
+        return EraseRecursive(from->down_, value);
     }
 // ne smotrel
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                  const Optional<T>& value) {
+                                                  const Optional& value) {
         if (!from->right_) {
             return End();
         }
@@ -329,14 +335,14 @@ private:
         if (!from->down_) {
            //auto tmp = std::make_shared<SkipListItImpl>(from);
             //return tmp->Increment();
-            return from->right_;
+            return std::make_shared<SkipListItImpl>(from->right_);
         }
         return LowerBoundRecursive(from->down_, value);
     }
 
     bool InsertRecursive(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
         // бред написал тупой
-        std::stack<std::shared_ptr<BaseImpl>> node_path;
+        std::stack<std::shared_ptr<Node>> node_path;
         while (1) {
             if (!from->right_) {
                 //этого случая даже не будет
@@ -365,9 +371,8 @@ private:
         }
     }
 
-    void BuildLvl(std::stack<std::shared_ptr<BaseImpl>> node_path, std::shared_ptr<Node> from) {
-    Random coin_flip;
-         if (coin_flip.Next()) {
+    void BuildLvl(std::stack<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
+         if (Random::Next()) {
              std::shared_ptr<Node> up_node;
              up_node->down_=from;
              if (node_path.size()!=0) {
@@ -389,8 +394,10 @@ private:
                  new_head->value_.setInfo('b');
                  new_end->value_.setInfo('e');
              }
-             Buildlvl(node_path,up_node);
+             BuildLvl(node_path,up_node);
+             return;
         }
+
     }
 };
 
