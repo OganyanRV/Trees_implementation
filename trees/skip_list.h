@@ -24,8 +24,8 @@ public:
             info='v';
         }
 
-        Optional(const T value__) {
-            value = std::make_shared<T>(value__);
+        Optional(const T& value_) {
+            value = std::make_shared<T>(const_cast<T&>(value_));
             info = 'v';
         }
 
@@ -41,14 +41,14 @@ public:
             return this->info;
         }
 
-         bool operator<(const Optional& rhs) {
-             if (this->info == 'v') {
+        friend bool operator<(const Optional& lhs, const Optional& rhs) {
+             if (lhs.info == 'v') {
                 if (rhs.info == 'v') {
-                    return *(this->value) < *(rhs.value);
+                    return *(lhs.value) < *(rhs.value);
                 } else {
                     return rhs.info != 'b';
                 }
-            } else if (this->info == 'b') {
+            } else if (lhs.info == 'b') {
                 return rhs.info == 'v';
             } else {
                 return rhs.info != 'v';
@@ -285,7 +285,7 @@ private:
     }
 
     std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
-                                            const Optional& value) {
+                                            const Optional& value) const {
         if (!from->right_) {
             return End();
         }
@@ -325,7 +325,7 @@ private:
     }
 // ne smotrel
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                  const Optional& value) {
+                                                  const Optional& value) const {
         if (!from->right_) {
             return End();
         }
