@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <stack>
+#include <random>
 
 template <class T>
 class ITree;
@@ -41,14 +42,14 @@ public:
             return this->info;
         }
 
-        friend bool operator<(const Optional& lhs, const Optional& rhs) {
-             if (lhs.info == 'v') {
+        bool operator<(const Optional& rhs) const {
+             if (this->info == 'v') {
                 if (rhs.info == 'v') {
-                    return *(lhs.value) < *(rhs.value);
+                    return *(this->value) < *(rhs.value);
                 } else {
                     return rhs.info != 'b';
                 }
-            } else if (lhs.info == 'b') {
+            } else if (this->info == 'b') {
                 return rhs.info == 'v';
             } else {
                 return rhs.info != 'v';
@@ -323,7 +324,7 @@ private:
         }
         return EraseRecursive(from->down_, value);
     }
-// ne smotrel
+
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
                                                   const Optional& value) const {
         if (!from->right_) {
@@ -342,7 +343,8 @@ private:
 
     bool InsertRecursive(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
         // бред написал тупой
-        std::stack<std::shared_ptr<Node>> node_path;
+        //std::stack<std::shared_ptr<Node>> node_path;
+        std::vector<std::shared_ptr<Node>> node_path;
         while (1) {
             if (!from->right_) {
                 //этого случая даже не будет
@@ -353,49 +355,56 @@ private:
             }
             else {
                 if (from->down_) {
-                    node_path.push(from);
+                    // node_path.push(from);
+                    node_path.push_back(from);
                     from = from->down_;
                 }
                 else {
                     if (new_node->value_ < from->right_->value_) {
-                        return false;
+                        new_node->left_ = from;
+                        new_node->right_ = from->right_;
+                        from->right_->left_ = new_node;
+                        from->right_ = new_node;
+                        BuildLvl(node_path, new_node);
+                        return true;
                     }
-                    new_node->left_=from;
-                    new_node->right_=from->right_;
-                    from->right_->left_=new_node;
-                    from->right_=new_node;
-                    BuildLvl(node_path, new_node);
-                    return true;
+                    return false;
                 }
             }
         }
     }
 
-    void BuildLvl(std::stack<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
-         if (Random::Next()) {
-             std::shared_ptr<Node> up_node;
-             up_node->down_=from;
-             if (node_path.size()!=0) {
-                 auto prev = node_path.top();
-                 up_node->left_=prev;
-                 up_node->right_=prev->right_;
-                 prev->right_->left_=up_node;
-                 prev->right_=up_node;
-                 node_path.pop();
-             }
-             else {
-                 up_node->down_=from;
-                 std::shared_ptr<Node> new_head, new_end;
-                 new_head->down_=head_;
-                 new_head->right_=up_node;
-                 up_node->right_=new_end;
-                 new_end->down_ = end_;
-                 new_end->left_=up_node;
-                 new_head->value_.setInfo('b');
-                 new_end->value_.setInfo('e');
-             }
-             BuildLvl(node_path,up_node);
-             return;
+    //void BuildLvl(std::stack<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
+    void BuildLvl(std::vector<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
+        if (Random::Next()) {
+            std::shared_ptr<Node>up_node;
+            up_node = std::make_shared<Node>();
+            up_node->down_ = from;
+            if (node_path.size() != 0) {
+                auto prev = node_path.back();
+                // auto prev = node_path.top();
+                up_node->left_ = prev;
+                up_node->right_ = prev->right_;
+                prev->right_->left_ = up_node;
+                prev->right_ = up_node;
+                // node_path.pop();
+                node_path.pop_back();
+            }
+            else {
+                up_node->down_ = from;
+                std::shared_ptr<Node> new_head, new_end;
+                new_head = std::make_shared<Node>();
+                new_end = std::make_shared<Node>();
+                new_head->down_ = head_;
+                new_head->right_ = up_node;
+                up_node->right_ = new_end;
+                new_end->down_ = end_;
+                new_end->left_ = up_node;
+                new_head->value_.setInfo('b');
+                new_end->value_.setInfo('e');
+            }
+            BuildLvl(node_path, up_node);
+            return;
         }
 
     }
