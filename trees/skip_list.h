@@ -1,12 +1,3 @@
-#pragma once
-#include <exception>
-#include <initializer_list>
-#include <iostream>
-#include <memory>
-#include <optional>
-#include <stack>
-#include <random>
-
 template <class T>
 class ITree;
 
@@ -43,7 +34,7 @@ public:
         }
 
         bool operator<(const Optional& rhs) const {
-             if (this->info == 'v') {
+            if (this->info == 'v') {
                 if (rhs.info == 'v') {
                     return *(this->value) < *(rhs.value);
                 } else {
@@ -103,12 +94,22 @@ public:
     };
 
     SkipList() {
-        head_ = std::make_shared<Node>();
-        end_ = std::make_shared<Node>();
-        head_->value_.setInfo('b');
-        end_->value_.setInfo('e');
-        head_->right_ = end_;
-        end_->left_ = head_;
+        head_top = std::make_shared<Node>();
+        end_top = std::make_shared<Node>();;
+        head_bot = std::make_shared<Node>();
+        end_bot = std::make_shared<Node>();
+        // head_top->value_.setInfo('b');
+        head_bot->value_.setInfo('b');
+        // end_top->value_.setInfo('e');
+        end_bot->value_.setInfo('e');
+        // head_top->right_ = end_top;
+        // end_top->left_ = head_top;
+        head_bot->right_ = end_bot;
+        end_bot->left_ = head_bot;
+        head_top = head_bot;
+        end_top = end_bot;
+        // head_top->down_ = head_bot;
+        // end_top->down_ = end_bot;
         size_ = 0;
     }
 
@@ -132,21 +133,33 @@ public:
 
     }
     SkipList(SkipList&& other) noexcept {
-        std::swap(head_, other.head_);
-        std::swap(end_, other.end_);
+        std::swap(head_top, other.head_top);
+        std::swap(end_top, other.end_top);
+        std::swap(head_bot, other.head_bot);
+        std::swap(end_bot, other.end_bot);
         std::swap(size_, other.size_);
     }
     SkipList(std::shared_ptr<ITree<T>> other) : SkipList(*dynamic_cast<SkipList<T>*>(other.get())) {
     }
 
     SkipList& operator=(const SkipList& other) {
-        if (head_ == other.head_) {
+        if (head_top == other.head_top) {
             return *this;
         }
-        head_ = std::make_shared<Node>();
-        end_ = std::make_shared<Node>();
-        head_->right_ = end_;
-        end_->left_ = head_;
+        head_top = std::make_shared<Node>();
+        end_top = std::make_shared<Node>();
+        head_bot = std::make_shared<Node>();
+        end_bot = std::make_shared<Node>();
+        head_top->value_.setInfo('b');
+        head_bot->value_.setInfo('b');
+        end_top->value_.setInfo('e');
+        end_bot->value_.setInfo('e');
+        head_top->right_ = end_top;
+        end_top->left_ = head_top;
+        head_bot->right_ = end_bot;
+        end_bot->left_ = head_bot;
+        head_top->down_ = head_bot;
+        end_top->down_ = end_bot;
         size_ = 0;
         for (const T& value : other) {
             Insert(value);
@@ -155,18 +168,22 @@ public:
     }
 
     SkipList& operator=(SkipList&& other) noexcept {
-        if (head_ == other.head_) {
+        if (head_top == other.head_top) {
             return *this;
         }
-        std::swap(head_, other.head_);
-        std::swap(end_, other.end_);
+        std::swap(head_top, other.head_top);
+        std::swap(end_top, other.end_top);
+        std::swap(head_bot, other.head_bot);
+        std::swap(end_bot, other.end_bot);
         std::swap(size_, other.size_);
         return *this;
     }
 
     ~SkipList() override {
-        head_ = nullptr;
-        end_ = nullptr;
+        head_top = nullptr;
+        head_bot = nullptr;
+        end_top = nullptr;
+        end_bot = nullptr;
         size_ = 0;
     }
 
@@ -180,37 +197,39 @@ public:
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         Optional val(value);
-        return FindRecursive(head_, val);
+        return FindRecursive(head_top, val);
     }
 
     void Erase(const T& value) override {
         Optional val(value);
-        if (EraseRecursive(head_, val)) {
+        if (EraseRecursive(head_top, val)) {
             --size_;
         }
     }
 
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         Optional val(value);
-        return LowerBoundRecursive(head_, val);
+        return LowerBoundRecursive(head_top, val);
     }
 
     void Insert(const T& value) override {
         std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
-        if (InsertRecursive(head_, new_node)) {
+        if (InsertRecursive(head_top, new_node)) {
             ++size_;
         }
     }
 
     void Clear() override {
-        head_ = std::make_shared<Node>();
-        end_ = head_;
+        head_top = std::make_shared<Node>();
+        end_top=end_bot=head_bot=head_top;
         size_ = 0;
     }
 
 private:
-    std::shared_ptr<Node> head_;
-    std::shared_ptr<Node> end_;
+    std::shared_ptr<Node> head_top;
+    std::shared_ptr<Node> end_top;
+    std::shared_ptr<Node> head_bot;
+    std::shared_ptr<Node> end_bot;
     size_t size_;
     /* ---------------------------------------------------
      * --------------ITERATOR IMPLEMENTATION--------------
@@ -278,11 +297,11 @@ private:
     };
 
     std::shared_ptr<BaseImpl> Begin() const override {
-        return std::make_shared<SkipListItImpl>(head_->right_);
+        return std::make_shared<SkipListItImpl>(head_bot->right_);
     }
 
     std::shared_ptr<BaseImpl> End() const override {
-        return std::make_shared<SkipListItImpl>(end_);
+        return std::make_shared<SkipListItImpl>(end_bot);
     }
 
     std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
@@ -313,6 +332,7 @@ private:
             if (value < from->right_->value_ ) {
                 return false;
             }
+            from=from->right_;
             from->left_.lock()->right_ = from->right_;
             from->right_->left_ = from->left_;
             while(from->down_){
@@ -334,7 +354,7 @@ private:
             return LowerBoundRecursive(from->right_, value);
         }
         if (!from->down_) {
-           //auto tmp = std::make_shared<SkipListItImpl>(from);
+            //auto tmp = std::make_shared<SkipListItImpl>(from);
             //return tmp->Increment();
             return std::make_shared<SkipListItImpl>(from->right_);
         }
@@ -380,6 +400,7 @@ private:
             std::shared_ptr<Node>up_node;
             up_node = std::make_shared<Node>();
             up_node->down_ = from;
+            up_node->value_ = from->value_;
             if (node_path.size() != 0) {
                 auto prev = node_path.back();
                 // auto prev = node_path.top();
@@ -392,16 +413,23 @@ private:
             }
             else {
                 up_node->down_ = from;
-                std::shared_ptr<Node> new_head, new_end;
+                std::shared_ptr<Node> new_head, new_end, tmp_head, tmp_end;
+                tmp_head = std::make_shared<Node>();
+                tmp_head = head_top;
+                tmp_end= std::make_shared<Node>();
+                tmp_end=end_top;
                 new_head = std::make_shared<Node>();
                 new_end = std::make_shared<Node>();
-                new_head->down_ = head_;
+                new_head->down_ = tmp_head ;
                 new_head->right_ = up_node;
+                up_node->left_ = new_head;
                 up_node->right_ = new_end;
-                new_end->down_ = end_;
+                new_end->down_ = tmp_end;
                 new_end->left_ = up_node;
                 new_head->value_.setInfo('b');
                 new_end->value_.setInfo('e');
+                head_top = new_head;
+                end_top = new_head;
             }
             BuildLvl(node_path, up_node);
             return;
@@ -409,4 +437,3 @@ private:
 
     }
 };
-
