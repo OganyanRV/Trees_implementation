@@ -61,7 +61,7 @@ void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
         *dynamic_cast<RBTree<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
     } else if (type == ImplType::kSkipList) {
         throw std::runtime_error("Tree is not implemented yet");
-        // *dynamic_cast<SkipList<T>*>(lhs.get()) = *dynamic_cast<RBTree<T>*>(rhs.get());
+        // *dynamic_cast<SkipList<T>*>(lhs.get()) = *dynamic_cast<SkipList<T>*>(rhs.get());
     } else if (type == ImplType::kSplay) {
         *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
     } else {

@@ -18,9 +18,9 @@ public:
 #endif
         // All types of trees are listed below.
         types_.emplace("AVL tree", ImplType::kAVL);
-        types_.emplace("Cartesian tree", ImplType::kCartesian);
+        //types_.emplace("Cartesian tree", ImplType::kCartesian);
         types_.emplace("Red-Black tree", ImplType::kRB);
-        // types_.emplace("Skip list", ImplType::kSkipList);
+        types_.emplace("Skip list", ImplType::kSkipList);
         types_.emplace("Splay tree", ImplType::kSplay);
 
         /* All tests are listed below.
