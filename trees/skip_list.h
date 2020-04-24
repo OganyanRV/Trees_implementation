@@ -339,15 +339,25 @@ private:
                 return EraseRecursive(from->down_, value);
             }
         }
-        from=from->right_;
-        from->left_.lock()->right_ = from->right_;
-        from->right_->left_ = from->left_;
-        while(from->down_){
-            from=from->down_;
-            from->left_.lock()->right_ = from->right_;
-            from->right_->left_ = from->left_;
-        }
+        auto cur_node = from->right_;
+        auto new_from =from->right_->right_;
+        from->right_=new_from;
+        new_from->left_.lock() = from;
+        RemoveLevels(cur_node);
         return true;
+    }
+
+    void RemoveLevels(std::shared_ptr<Node> from) {
+        if(from->down_){
+            from = from->down_;
+            auto prev_from = from->left_.lock();
+            auto new_from =from->right_;
+            prev_from->right_=new_from;
+            new_from->left_.lock() = prev_from;
+            RemoveLevels(from);
+            return;
+        }
+        return;
     }
 
     std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
