@@ -270,9 +270,12 @@ private:
                 it_ = it_->down_;
             }
             if (!it_->left_.lock()) {
-                throw std::runtime_error("Index out of range while increasing");
+                throw std::runtime_error("Index out of range while decreasing");
             }
             it_ = it_->left_.lock();
+            if (!it_->left_.lock()) {
+                throw std::runtime_error("Index out of range while decreasing");
+            }
         }
 
         const T Dereferencing() const override {
@@ -304,7 +307,7 @@ private:
     }
 
     std::shared_ptr<BaseImpl> End() const override {
-        return std::make_shared<SkipListItImpl>(end_bot);
+        return std::make_shared<SkipListItImpl>(end_top);
     }
 
     std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
@@ -339,10 +342,20 @@ private:
                 return EraseRecursive(from->down_, value);
             }
         }
+        /*
+   from = from->right_;
+   auto prev_from = from->left_.lock();
+   auto new_from =from->right_;
+   prev_from->right_=new_from;
+   new_from->left_ = prev_from;
+   RemoveLevels(from);
+   */
+
         auto cur_node = from->right_;
-        auto new_from =from->right_->right_;
+        //cur_node->left_.lock() = nullptr;
+        auto new_from =cur_node->right_;
+        new_from->left_ = from;
         from->right_=new_from;
-        new_from->left_.lock() = from;
         RemoveLevels(cur_node);
         return true;
     }
@@ -353,7 +366,7 @@ private:
             auto prev_from = from->left_.lock();
             auto new_from =from->right_;
             prev_from->right_=new_from;
-            new_from->left_.lock() = prev_from;
+            new_from->left_ = prev_from;
             RemoveLevels(from);
             return;
         }
