@@ -294,10 +294,34 @@ private:
 
         bool IsEqual(std::shared_ptr<BaseImpl> other) const override {
             auto casted = std::dynamic_pointer_cast<SkipListItImpl>(other);
-            if (!casted) {
+            if (!casted || !it_) {
                 return false;
             }
-            return it_ == casted->it_;
+            auto bot_it = it_;
+            auto bot_other = casted -> it_;
+            while (bot_it->down_) {
+                bot_it = bot_it->down_;
+            }
+            while (bot_other->down_) {
+                bot_other = bot_other->down_;
+            }
+            return bot_other == bot_it;
+            //return it_==casted->it_;
+            /*
+            if (it_ && casted->it_ ) {
+                if (it_->left_.lock() && it_->right_ && casted->it_->left_.lock() && casted ->it_->right_ )
+                    return it_->value_.GetValue() == casted->it_->value_.GetValue();
+                return it_->value_.GetInfo() == casted->it_->value_.GetInfo();
+            }
+             */
+            //
+          //  return false;
+
+            /*
+            if (it_->value_.GetInfo() == 'v' && casted->it_->value_.GetInfo() == 'v')
+            return it_->value_.GetValue() == casted->it_->value_.GetValue();
+            return it_->value_.GetInfo() == casted->it_->value_.GetInfo();
+             */
         }
     };
 
