@@ -271,9 +271,6 @@ private:
             while (it_->down_) {
                 it_ = it_->down_;
             }
-            if (!it_->left_.lock()) {
-                throw std::runtime_error("Index out of range while decreasing");
-            }
             it_ = it_->left_.lock();
             if (!it_->left_.lock()) {
                 throw std::runtime_error("Index out of range while decreasing");
@@ -308,22 +305,6 @@ private:
                 bot_other = bot_other->down_;
             }
             return bot_other == bot_it;
-            //return it_==casted->it_;
-            /*
-            if (it_ && casted->it_ ) {
-                if (it_->left_.lock() && it_->right_ && casted->it_->left_.lock() && casted ->it_->right_ )
-                    return it_->value_.GetValue() == casted->it_->value_.GetValue();
-                return it_->value_.GetInfo() == casted->it_->value_.GetInfo();
-            }
-             */
-            //
-            //  return false;
-
-            /*
-            if (it_->value_.GetInfo() == 'v' && casted->it_->value_.GetInfo() == 'v')
-            return it_->value_.GetValue() == casted->it_->value_.GetValue();
-            return it_->value_.GetInfo() == casted->it_->value_.GetInfo();
-             */
         }
     };
 
@@ -368,17 +349,7 @@ private:
                 return EraseRecursive(from->down_, value);
             }
         }
-        /*
-   from = from->right_;
-   auto prev_from = from->left_.lock();
-   auto new_from =from->right_;
-   prev_from->right_=new_from;
-   new_from->left_ = prev_from;
-   RemoveLevels(from);
-   */
-
         auto cur_node = from->right_;
-        //cur_node->left_.lock() = nullptr;
         auto new_from =cur_node->right_;
         new_from->left_ = from;
         from->right_=new_from;
@@ -392,7 +363,7 @@ private:
             auto prev_from = from->left_.lock();
             auto new_from =from->right_;
             prev_from->right_=new_from;
-            new_from->left_ = prev_from;
+            new_from->left_.lock() = prev_from;
             RemoveLevels(from);
             return;
         }
@@ -408,20 +379,16 @@ private:
             return LowerBoundRecursive(from->right_, value);
         }
         if (!from->down_) {
-            //auto tmp = std::make_shared<SkipListItImpl>(from);
-            //return tmp->Increment();
             return std::make_shared<SkipListItImpl>(from->right_);
         }
         return LowerBoundRecursive(from->down_, value);
     }
 
     bool InsertRecursive(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
-        // бред написал тупой
-        //std::stack<std::shared_ptr<Node>> node_path;
+
         std::vector<std::shared_ptr<Node>> node_path;
         while (1) {
             if (!from->right_) {
-                //этого случая даже не будет
                 return false;
             }
             else if (from->right_->value_ < new_node->value_) {
@@ -429,7 +396,6 @@ private:
             }
             else {
                 if (from->down_) {
-                    // node_path.push(from);
                     node_path.push_back(from);
                     from = from->down_;
                 }
@@ -448,7 +414,6 @@ private:
         }
     }
 
-    //void BuildLvl(std::stack<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
     void BuildLvl(std::vector<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
         if (Random::Next()) {
             std::shared_ptr<Node>up_node;
@@ -457,12 +422,10 @@ private:
             up_node->value_ = from->value_;
             if (node_path.size() != 0) {
                 auto prev = node_path.back();
-                // auto prev = node_path.top();
                 up_node->left_ = prev;
                 up_node->right_ = prev->right_;
                 prev->right_->left_ = up_node;
                 prev->right_ = up_node;
-                // node_path.pop();
                 node_path.pop_back();
             }
             else {
