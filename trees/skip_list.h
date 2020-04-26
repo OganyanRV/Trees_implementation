@@ -100,18 +100,12 @@ public:
         end_top = std::make_shared<Node>();;
         head_bot = std::make_shared<Node>();
         end_bot = std::make_shared<Node>();
-        // head_top->value_.setInfo('b');
         head_bot->value_.setInfo('b');
-        // end_top->value_.setInfo('e');
         end_bot->value_.setInfo('e');
-        // head_top->right_ = end_top;
-        // end_top->left_ = head_top;
         head_bot->right_ = end_bot;
         end_bot->left_ = head_bot;
         head_top = head_bot;
         end_top = end_bot;
-        // head_top->down_ = head_bot;
-        // end_top->down_ = end_bot;
         size_ = 0;
     }
 
@@ -223,7 +217,15 @@ public:
 
     void Clear() override {
         head_top = std::make_shared<Node>();
-        end_top=end_bot=head_bot=head_top;
+        end_top = std::make_shared<Node>();;
+        head_bot = std::make_shared<Node>();
+        end_bot = std::make_shared<Node>();
+        head_bot->value_.setInfo('b');
+        end_bot->value_.setInfo('e');
+        head_bot->right_ = end_bot;
+        end_bot->left_ = head_bot;
+        head_top = head_bot;
+        end_top = end_bot;
         size_ = 0;
     }
 
@@ -315,7 +317,7 @@ private:
             }
              */
             //
-          //  return false;
+            //  return false;
 
             /*
             if (it_->value_.GetInfo() == 'v' && casted->it_->value_.GetInfo() == 'v')
