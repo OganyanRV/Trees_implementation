@@ -6,44 +6,53 @@ class SkipList : public ITree<T> {
 public:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
+private:
     class Optional {
     private:
-        std::shared_ptr<T> value;
-        char info;
+        std::shared_ptr<T> value_;
+        char info_;
 
     public:
-        Optional() {
-            info = 'v';
+
+         Optional() {
+            info_ = 'v';
         }
 
-        Optional(const T& value_) {
-            value = std::make_shared<T>(const_cast<T&>(value_));
-            info = 'v';
+        //Optional() = delete;
+
+        Optional(const char newinfo) {
+            info_ = newinfo;
         }
 
+        Optional(const T& value) {
+            value_ = std::make_shared<T>(const_cast<T&>(value));
+            info_ = 'v';
+        }
+        /*
         void setInfo(char newinfo) {
-            this->info = newinfo;
+            this->info_ = newinfo;
         }
+         */
 
         std::shared_ptr<T> GetValue() {
-            return this->value;
+            return this->value_;
         }
 
         char GetInfo() {
-            return this->info;
+            return this->info_;
         }
 
         bool operator<(const Optional& rhs) const {
-            if (this->info == 'v') {
-                if (rhs.info == 'v') {
-                    return *(this->value) < *(rhs.value);
+            if (this->info_ == 'v') {
+                if (rhs.info_ == 'v') {
+                    return *(this->value_) < *(rhs.value_);
                 } else {
-                    return rhs.info != 'b';
+                    return rhs.info_ != 'b';
                 }
-            } else if (this->info == 'b') {
-                return rhs.info == 'v';
+            } else if (this->info_ == 'b') {
+                return rhs.info_ == 'v';
             } else {
-                return rhs.info != 'v';
+                return rhs.info_ != 'v';
             }
         }
     };
@@ -66,7 +75,15 @@ public:
 
 public:
     struct Node {
-        Node() : value_() {
+       // Node() = delete;
+       Node() : value_() {
+           left_ = std::weak_ptr<Node>();
+           down_ = nullptr;
+           right_ = nullptr;
+       }
+
+
+        explicit Node(char value_info) : value_(value_info) {
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
@@ -91,13 +108,10 @@ public:
     };
 
     SkipList() {
-        head_top = std::make_shared<Node>();
-        end_top = std::make_shared<Node>();
-        ;
-        head_bot = std::make_shared<Node>();
-        end_bot = std::make_shared<Node>();
-        head_bot->value_.setInfo('b');
-        end_bot->value_.setInfo('e');
+        head_top = std::make_shared<Node>('b');
+        end_top = std::make_shared<Node>('e');
+        head_bot = std::make_shared<Node>('b');
+        end_bot = std::make_shared<Node>('e');
         head_bot->right_ = end_bot;
         end_bot->left_ = head_bot;
         head_top = head_bot;
@@ -137,14 +151,10 @@ public:
         if (head_top == other.head_top) {
             return *this;
         }
-        head_top = std::make_shared<Node>();
-        end_top = std::make_shared<Node>();
-        head_bot = std::make_shared<Node>();
-        end_bot = std::make_shared<Node>();
-        head_top->value_.setInfo('b');
-        head_bot->value_.setInfo('b');
-        end_top->value_.setInfo('e');
-        end_bot->value_.setInfo('e');
+        head_top = std::make_shared<Node>('b');
+        end_top = std::make_shared<Node>('e');
+        head_bot = std::make_shared<Node>('b');
+        end_bot = std::make_shared<Node>('e');
         head_top->right_ = end_top;
         end_top->left_ = head_top;
         head_bot->right_ = end_bot;
@@ -211,13 +221,10 @@ public:
     }
 
     void Clear() override {
-        head_top = std::make_shared<Node>();
-        end_top = std::make_shared<Node>();
-        ;
-        head_bot = std::make_shared<Node>();
-        end_bot = std::make_shared<Node>();
-        head_bot->value_.setInfo('b');
-        end_bot->value_.setInfo('e');
+        head_top = std::make_shared<Node>('b');
+        end_top = std::make_shared<Node>('e');
+        head_bot = std::make_shared<Node>('b');
+        end_bot = std::make_shared<Node>('e');
         head_bot->right_ = end_bot;
         end_bot->left_ = head_bot;
         head_top = head_bot;
@@ -422,16 +429,14 @@ private:
                 std::shared_ptr<Node> new_head, new_end, tmp_head, tmp_end;
                 tmp_head = head_top;
                 tmp_end = end_top;
-                new_head = std::make_shared<Node>();
-                new_end = std::make_shared<Node>();
+                new_head = std::make_shared<Node>('b');
+                new_end = std::make_shared<Node>('e');
                 new_head->down_ = tmp_head;
                 new_head->right_ = up_node;
                 up_node->left_ = new_head;
                 up_node->right_ = new_end;
                 new_end->down_ = tmp_end;
                 new_end->left_ = up_node;
-                new_head->value_.setInfo('b');
-                new_end->value_.setInfo('e');
                 head_top = new_head;
                 end_top = new_end;
             }
