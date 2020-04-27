@@ -420,9 +420,7 @@ private:
                 node_path.pop_back();
             } else {
                 std::shared_ptr<Node> new_head, new_end, tmp_head, tmp_end;
-                tmp_head = std::make_shared<Node>();
                 tmp_head = head_top;
-                tmp_end = std::make_shared<Node>();
                 tmp_end = end_top;
                 new_head = std::make_shared<Node>();
                 new_end = std::make_shared<Node>();
