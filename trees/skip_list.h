@@ -80,11 +80,17 @@ public:
             right_ = nullptr;
         }
 
+        explicit Node(std::shared_ptr<Optional> value_info) : value_(*value_info) {
+            left_ = std::weak_ptr<Node>();
+            down_ = nullptr;
+            right_ = nullptr;
+        }
+
         Node(const Node& other) : value_(other.value_) {
             left_ = other.left_;
             down_ = other.down_;
             right_ = other.right_;
-        }
+        }        
 
         std::shared_ptr<Node> down_;
         std::weak_ptr<Node> left_;
@@ -397,12 +403,11 @@ private:
         }
     }
 
-    void BuildLvl(std::vector<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
-        if (Random::Next()) {
+    void BuildLvl(std::vector<std::shared_ptr<Node>> &node_path, std::shared_ptr<Node> from) {
+        while (Random::Next()) {
             std::shared_ptr<Node> up_node;
-            up_node = std::make_shared<Node>('v');
+            up_node = std::make_shared<Node>(std::make_shared<Optional> (from->value_));
             up_node->down_ = from;
-            up_node->value_ = from->value_;
             if (node_path.size() != 0) {
                 auto prev = node_path.back();
                 up_node->left_ = prev;
@@ -425,8 +430,8 @@ private:
                 head_top = new_head;
                 end_top = new_end;
             }
-            BuildLvl(node_path, up_node);
-            return;
+            from = up_node;
         }
+        return;
     }
 };
