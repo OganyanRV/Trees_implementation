@@ -13,12 +13,7 @@ private:
         char info_;
 
     public:
-
-         Optional() {
-            info_ = 'v';
-        }
-
-        //Optional() = delete;
+        Optional() = delete;
 
         Optional(const char newinfo) {
             info_ = newinfo;
@@ -28,11 +23,7 @@ private:
             value_ = std::make_shared<T>(const_cast<T&>(value));
             info_ = 'v';
         }
-        /*
-        void setInfo(char newinfo) {
-            this->info_ = newinfo;
-        }
-         */
+
 
         std::shared_ptr<T> GetValue() {
             return this->value_;
@@ -75,13 +66,7 @@ private:
 
 public:
     struct Node {
-       // Node() = delete;
-       Node() : value_() {
-           left_ = std::weak_ptr<Node>();
-           down_ = nullptr;
-           right_ = nullptr;
-       }
-
+        Node() = delete;
 
         explicit Node(char value_info) : value_(value_info) {
             left_ = std::weak_ptr<Node>();
@@ -415,7 +400,7 @@ private:
     void BuildLvl(std::vector<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
         if (Random::Next()) {
             std::shared_ptr<Node> up_node;
-            up_node = std::make_shared<Node>();
+            up_node = std::make_shared<Node>('v');
             up_node->down_ = from;
             up_node->value_ = from->value_;
             if (node_path.size() != 0) {
