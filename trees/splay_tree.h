@@ -247,16 +247,29 @@ private:
 
     std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
                                             const std::optional<T>& value) {
-        if (!from) {
-            return End();
-        }
-        if (value < from->value_) {
-            return FindRecursive(from->left_, value);
-        } else if (from->value_ < value) {
-            return FindRecursive(from->right_, value);
-        } else {
-            Splay(from);
-            return std::make_shared<SplayTreeItImpl>(root_);
+        auto cur_node = std::shared_ptr<Node>(from);
+        while (1) {
+            if (!from) {
+                return End();
+            }
+            if (value < cur_node->value_) {
+                if (cur_node->left_) {
+                    cur_node = cur_node->left_;
+                } else {
+                    Splay(cur_node);
+                    return End();
+                }
+            } else if (cur_node->value_ < value) {
+                if (cur_node->right_) {
+                    cur_node = cur_node->right_;
+                } else {
+                    Splay(cur_node);
+                    return End();
+                }
+            } else {
+                Splay(cur_node);
+                return std::make_shared<SplayTreeItImpl>(root_);
+            }
         }
     }
 
@@ -282,17 +295,31 @@ private:
     }
 
     bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        if (!from) {
-            return false;
-        } else if (value < from->value_) {
-            return EraseImpl(from->left_, value);
-        } else if (from->value_ < value) {
-            return EraseImpl(from->right_, value);
-        } else {
-            Splay(from);
-            root_ = Merge(root_->left_, root_->right_);
-            UpdateBegin();
-            return true;
+        auto cur_node = std::shared_ptr<Node>(from);
+        while (1) {
+            if (!from) {
+                return false;
+            }
+            if (value < cur_node->value_) {
+                if (cur_node->left_) {
+                    cur_node = cur_node->left_;
+                } else {
+                   Splay(cur_node);
+                   return false;
+                }
+            } else if (cur_node->value_ < value) {
+                if (cur_node->right_) {
+                    cur_node = cur_node->right_;
+                } else {
+                    Splay(cur_node);
+                    return false;
+                }
+            } else {
+                Splay(cur_node);
+                root_ = Merge(root_->left_, root_->right_);
+                UpdateBegin();
+                return true;
+            }
         }
     }
 
@@ -323,6 +350,7 @@ private:
                     CycleControl = false;
                 }
             } else {
+                Splay(tmp);
                 return false;
             }
         }
@@ -348,6 +376,7 @@ private:
                 return tmp;
             }
         } else {
+            Splay(from);
             return std::make_shared<SplayTreeItImpl>(from);
         }
     }

@@ -55,10 +55,17 @@ private:
         }
 
     private:
+        int limit=1;
         Random() {
             std::random_device device;
             gen_ = std::mt19937(device());
-            dist_ = std::uniform_int_distribution<uint32_t>(0, 1);
+            dist_ = std::uniform_int_distribution<uint32_t>(0, limit);
+        }
+        Random(int newlimit) {
+            limit = newlimit;
+            std::random_device device;
+            gen_ = std::mt19937(device());
+            dist_ = std::uniform_int_distribution<uint32_t>(0, limit);
         }
         std::mt19937 gen_;
         std::uniform_int_distribution<uint32_t> dist_;
@@ -90,7 +97,7 @@ public:
             left_ = other.left_;
             down_ = other.down_;
             right_ = other.right_;
-        }        
+        }
 
         std::shared_ptr<Node> down_;
         std::weak_ptr<Node> left_;
@@ -327,7 +334,7 @@ private:
         return FindRecursive(from->down_, value);
     }
 
-    bool EraseRecursive(std::shared_ptr<Node>& from, const Optional& value) {
+    static bool EraseRecursive(std::shared_ptr<Node>& from, const Optional& value) {
         if (!from->right_) {
             return false;
         }
@@ -349,7 +356,7 @@ private:
         return true;
     }
 
-    void RemoveLevels(std::shared_ptr<Node> from) {
+    static void RemoveLevels(std::shared_ptr<Node> from) {
         if (from->down_) {
             from = from->down_;
             auto prev_from = from->left_.lock();
@@ -362,11 +369,8 @@ private:
         return;
     }
 
-    std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                  const Optional& value) const {
-        if (!from->right_) {
-            return End();
-        }
+    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
+                                                  const Optional& value)  {
         if (from->right_->value_ < value) {
             return LowerBoundRecursive(from->right_, value);
         }
@@ -404,7 +408,7 @@ private:
     }
 
     void BuildLvl(std::vector<std::shared_ptr<Node>> &node_path, std::shared_ptr<Node> from) {
-        while (Random::Next()) {
+        while (!Random::Next()) {
             std::shared_ptr<Node> up_node;
             up_node = std::make_shared<Node>(std::make_shared<Optional> (from->value_));
             up_node->down_ = from;

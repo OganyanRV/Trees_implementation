@@ -405,7 +405,6 @@ private:
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
             } else {
-                RecalcBegin();
                 return false;
             }
         }
