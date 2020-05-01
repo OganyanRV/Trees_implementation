@@ -49,26 +49,19 @@ private:
     };
     class Random {
     public:
-        static uint32_t Next() {
+        static uint32_t Next(uint32_t to = 1u) {
             static Random rand = Random();
-            return rand.dist_(rand.gen_);
+            std::uniform_int_distribution<uint32_t> dist(0, to);
+            return dist(rand.gen_);
         }
 
     private:
-        int limit=1;
         Random() {
             std::random_device device;
             gen_ = std::mt19937(device());
-            dist_ = std::uniform_int_distribution<uint32_t>(0, limit);
         }
-        Random(int newlimit) {
-            limit = newlimit;
-            std::random_device device;
-            gen_ = std::mt19937(device());
-            dist_ = std::uniform_int_distribution<uint32_t>(0, limit);
-        }
+
         std::mt19937 gen_;
-        std::uniform_int_distribution<uint32_t> dist_;
     };
 
 public:
