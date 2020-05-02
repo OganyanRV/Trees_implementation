@@ -131,24 +131,39 @@ public:
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
-        return FindRecursive(root_, val);
+        auto from = root_;
+        while (from) {
+            if (val < from->value_) {
+                from = from->left_;
+            } else if (from->value_ < val) {
+                from = from->right_;
+            } else {
+                return std::make_shared<CartesianTreeItImpl>(from);
+            }
+        }
+        return End();
     }
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
-        if (val < root_->value_) {
-            if (root_->left_) {
-                return LowerBoundRecursive(root_->left_, val);
+        auto from = root_;
+        while (true) {
+            if (val < from->value_) {
+                if (from->left_) {
+                    from = from->left_;
+                } else {
+                    return std::make_shared<CartesianTreeItImpl>(from);
+                }
+            } else if (from->value_ < val) {
+                if (from->right_) {
+                    from = from->right_;
+                } else {
+                    auto impl = std::make_shared<CartesianTreeItImpl>(from);
+                    impl->Increment();
+                    return impl;
+                }
             } else {
-                return std::make_shared<CartesianTreeItImpl>(root_);
+                return std::make_shared<CartesianTreeItImpl>(from);
             }
-        } else if (root_->value_ < val) {
-            if (root_->right_) {
-                return LowerBoundRecursive(root_->right_, val);
-            } else {
-                return End();
-            }
-        } else {
-            return std::make_shared<CartesianTreeItImpl>(root_);
         }
     }
 
@@ -323,39 +338,6 @@ private:
         }
     }
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
-                                            const std::optional<T>& value) const {
-        if (!from) {
-            return End();
-        } else if (value < from->value_) {
-            return FindRecursive(from->left_, value);
-        } else if (from->value_ < value) {
-            return FindRecursive(from->right_, value);
-        } else {
-            return std::make_shared<CartesianTreeItImpl>(from);
-        }
-    }
-    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                         const std::optional<T>& value) {
-        if (value < from->value_) {
-            if (from->left_) {
-                return LowerBoundRecursive(from->left_, value);
-            } else {
-                return std::make_shared<CartesianTreeItImpl>(from);
-            }
-        } else if (from->value_ < value) {
-            if (from->right_) {
-                return LowerBoundRecursive(from->right_, value);
-            } else {
-                auto impl = std::make_shared<CartesianTreeItImpl>(from);
-                impl->Increment();
-                return impl;
-            }
-        } else {
-            return std::make_shared<CartesianTreeItImpl>(from);
-        }
-    }
-
     static bool InsertRecursive(std::shared_ptr<Node>& from, std::shared_ptr<Node> new_node) {
         if (!from) {
             from = new_node;
@@ -429,17 +411,5 @@ private:
             cur_node = cur_node->left_;
         }
         begin_ = cur_node;
-    }
-
-    // No longer need
-    static void FreeMemory(std::shared_ptr<Node> from) {
-        if (!from) {
-            return;
-        }
-        FreeMemory(from->left_);
-        FreeMemory(from->right_);
-        from->left_ = nullptr;
-        from->right_ = nullptr;
-        from->parent_ = nullptr;
     }
 };
