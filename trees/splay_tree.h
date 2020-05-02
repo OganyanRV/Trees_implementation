@@ -101,9 +101,7 @@ public:
     }
 
     ~SplayTree() override {
-        root_ = nullptr;
-        begin_ = nullptr;
-        end_ = nullptr;
+        root_ = begin_ = end_ = nullptr;
         size_ = 0;
     }
 
@@ -117,12 +115,12 @@ public:
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
-        return const_cast<SplayTree<T>*>(this)->FindRecursive(root_, val);
+        return const_cast<SplayTree<T>*>(this)->FindImpl(root_, val);
     }
 
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
-        return const_cast<SplayTree<T>*>(this)->LowerBoundRecursive(root_, val);
+        return const_cast<SplayTree<T>*>(this)->LowerBoundImpl(root_, val);
     }
 
     void Insert(const T& value) override {
@@ -245,10 +243,10 @@ private:
         return std::make_shared<SplayTreeItImpl>(end_);
     }
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
+    std::shared_ptr<BaseImpl> FindImpl(std::shared_ptr<Node> from,
                                             const std::optional<T>& value) {
         auto cur_node = std::shared_ptr<Node>(from);
-        while (1) {
+        while (true) {
             if (!from) {
                 return End();
             }
@@ -296,7 +294,7 @@ private:
 
     bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
         auto cur_node = std::shared_ptr<Node>(from);
-        while (1) {
+        while (true) {
             if (!from) {
                 return false;
             }
@@ -358,17 +356,17 @@ private:
         return true;
     }
 
-    std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
+    std::shared_ptr<BaseImpl> LowerBoundImpl(std::shared_ptr<Node> from,
                                                   const std::optional<T>& value) {
         if (value < from->value_) {
             if (from->left_) {
-                return LowerBoundRecursive(from->left_, value);
+                return LowerBoundImpl(from->left_, value);
             } else {
                 return std::make_shared<SplayTreeItImpl>(from);
             }
         } else if (from->value_ < value) {
             if (from->right_) {
-                return LowerBoundRecursive(from->right_, value);
+                return LowerBoundImpl(from->right_, value);
             } else {
                 Splay(from);
                 auto tmp = std::make_shared<SplayTreeItImpl>(from);

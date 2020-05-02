@@ -116,25 +116,12 @@ public:
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
-        return FindRecursive(root_, val);
+        return FindImpl(root_, val);
     }
+
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
-        if (val < root_->value_) {
-            if (root_->left_) {
-                return LowerBoundRecursive(root_->left_, val);
-            } else {
-                return std::make_shared<RBTreeItImpl>(root_);
-            }
-        } else if (root_->value_ < val) {
-            if (root_->right_) {
-                return LowerBoundRecursive(root_->right_, val);
-            } else {
-                return End();
-            }
-        } else {
-            return std::make_shared<RBTreeItImpl>(root_);
-        }
+       return LowerBoundImpl(root_, val);
     }
 
     void Insert(const T& value) override {
@@ -272,37 +259,40 @@ private:
      * ---------------------------------------------------
      */
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
+    std::shared_ptr<BaseImpl> FindImpl(std::shared_ptr<Node> from,
                                             const std::optional<T>& value) const {
 
-        if (!from)
-            return End();
-        if (value < from->value_) {
-            return FindRecursive(from->left_, value);
-        } else if (from->value_ < value) {
-            return FindRecursive(from->right_, value);
-        } else {
-            return std::make_shared<RBTreeItImpl>(from);
-        }
-    };
-    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                         const std::optional<T>& value) {
-        if (value < from->value_) {
-            if (from->left_) {
-                return LowerBoundRecursive(from->left_, value);
+        while (from) {
+            if (value < from->value_) {
+                from = from->left_;
+            } else if (from->value_ < value) {
+                from = from->right_;
             } else {
                 return std::make_shared<RBTreeItImpl>(from);
             }
-        } else if (from->value_ < value) {
-            if (from->right_) {
-                return LowerBoundRecursive(from->right_, value);
+        }
+        return End();
+    };
+    static std::shared_ptr<BaseImpl> LowerBoundImpl(std::shared_ptr<Node> from,
+                                                         const std::optional<T>& value) {
+        while (true) {
+            if (value < from->value_) {
+                if (from->left_) {
+                    from = from->left_;
+                } else {
+                    return std::make_shared<RBTreeItImpl>(from);
+                }
+            } else if (from->value_ < value) {
+                if (from->right_) {
+                    from = from->right_;
+                } else {
+                    auto impl = std::make_shared<RBTreeItImpl>(from);
+                    impl->Increment();
+                    return impl;
+                }
             } else {
-                auto impl = std::make_shared<RBTreeItImpl>(from);
-                impl->Increment();
-                return impl;
+                return std::make_shared<RBTreeItImpl>(from);
             }
-        } else {
-            return std::make_shared<RBTreeItImpl>(from);
         }
     }
     void CheckRBRecursive(std::shared_ptr<Node> from, std::vector<int>& blackHeight, int bh) const {
