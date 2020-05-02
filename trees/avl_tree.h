@@ -112,11 +112,11 @@ public:
     }
 
     std::shared_ptr<BaseImpl> Find(const T &value) const override {
-        return FindRecursive(root_, value);
+        return FindImpl(root_, value);
     }
     std::shared_ptr<BaseImpl> LowerBound(const T &value) const override {
         std::optional val(value);
-        return LowerBoundRecursive(root_, val);
+        return LowerBoundImpl(root_, val);
     }
 
     void Insert(const T &value) override {
@@ -242,37 +242,42 @@ private:
      * ---------------------------------------------------
      */
 
-    std::shared_ptr<BaseImpl> FindRecursive(std::shared_ptr<Node> from,
+    std::shared_ptr<BaseImpl> FindImpl(std::shared_ptr<Node> from,
                                             const std::optional<T> &value) const {
-        if (!from)
-            return End();
-        if (value < from->value_) {
-            return FindRecursive(from->left_, value);
-        } else if (from->value_ < value) {
-            return FindRecursive(from->right_, value);
-        } else {
-            return std::make_shared<AVLTreeItImpl>(from);
-        }
-    };
-    static std::shared_ptr<BaseImpl> LowerBoundRecursive(std::shared_ptr<Node> from,
-                                                         const std::optional<T> &value) {
-        if (value < from->value_) {
-            if (from->left_) {
-                return LowerBoundRecursive(from->left_, value);
+        while (from) {
+            if (value < from->value_) {
+                from = from->left_;
+            } else if (from->value_ < value) {
+                from = from->right_;
             } else {
                 return std::make_shared<AVLTreeItImpl>(from);
             }
-        } else if (from->value_ < value) {
-            if (from->right_) {
-                return LowerBoundRecursive(from->right_, value);
-            } else {
-                auto impl = std::make_shared<AVLTreeItImpl>(from);
-                impl->Increment();
-                return impl;
-            }
-        } else {
-            return std::make_shared<AVLTreeItImpl>(from);
         }
+        return End();
+    }
+
+    static std::shared_ptr<BaseImpl> LowerBoundImpl(std::shared_ptr<Node> from,
+                                                         const std::optional<T> &value) {
+        while (true) {
+            if (value < from->value_) {
+                if (from->left_) {
+                    from = from->left_;
+                } else {
+                    return std::make_shared<AVLTreeItImpl>(from);
+                }
+            } else if (from->value_ < value) {
+                if (from->right_) {
+                    from = from->right_;
+                } else {
+                    auto impl = std::make_shared<AVLTreeItImpl>(from);
+                    impl->Increment();
+                    return impl;
+                }
+            } else {
+                return std::make_shared<AVLTreeItImpl>(from);
+            }
+        }
+
     }
 
     void LeftRotate(std::shared_ptr<Node> from) {
@@ -405,7 +410,6 @@ private:
             } else if (cur_node->value_ < new_node->value_) {
                 next_node = cur_node->right_;
             } else {
-                RecalcBegin();
                 return false;
             }
         }
