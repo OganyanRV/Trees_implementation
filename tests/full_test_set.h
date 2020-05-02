@@ -1,5 +1,4 @@
 #pragma once
-#include "../catch/catch.hpp"
 #include <exception>
 #include <iostream>
 #include <random>

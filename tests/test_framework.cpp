@@ -1,8 +1,11 @@
+#define CATCH_CONFIG_MAIN
+#include "../catch/catch.hpp"
 #include <algorithm>
 #include <functional>
 #include <iostream>
-#include <string>
 #include <map>
+#include <string>
+#include <vector>
 
 #include "full_test_set.h"
 
@@ -20,7 +23,7 @@ public:
         types_.emplace("AVL tree", ImplType::kAVL);
         types_.emplace("Cartesian tree", ImplType::kCartesian);
         types_.emplace("Red-Black tree", ImplType::kRB);
-        // types_.emplace("Skip list", ImplType::kSkipList);
+        types_.emplace("Skip list", ImplType::kSkipList);
         types_.emplace("Splay tree", ImplType::kSplay);
 
         /* All tests are listed below.
@@ -29,6 +32,7 @@ public:
          * You can also use your own symbol for your tests.
          */
         tests_.emplace("%_simple_test", SomeTest);
+        tests_.emplace("%_rb_only_black_height_test", RBBlackHeightTest);
         tests_.emplace("!_emptiness_test", EmptinessTest);
         tests_.emplace("!_empty_iterators_test", EmptyIteratorsTest);
         tests_.emplace("!_empty_copying_test", EmptyCopyingTest);
@@ -39,7 +43,6 @@ public:
         tests_.emplace("!_strange_copy_test", StrangeCopyTest);
         tests_.emplace("!_find_and_lower_bound_test", FindAndLBTest);
         tests_.emplace("!_insert_and_erase_test", InsertAndEraseTest);
-        tests_.emplace("rb_only_black_height_test", RBBlackHeightTest);
     }
 
     template <class TreePredicate>

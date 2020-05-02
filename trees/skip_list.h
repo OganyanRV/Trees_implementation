@@ -4,15 +4,16 @@
 #include <iostream>
 #include <memory>
 
+uint64_t ctr = 0, opt_counter = 0;
+
 template <class T>
 class ITree;
 
 template <class T>
 class SkipList : public ITree<T> {
-public:
+private:
     typedef typename ITree<T>::ITreeItImpl BaseImpl;
 
-private:
     class Optional {
     private:
         std::shared_ptr<T> value_;
@@ -20,16 +21,28 @@ private:
 
     public:
         Optional() = delete;
+        Optional(Optional&&) = delete;
 
         Optional(char newinfo) {
+            ++opt_counter;
             info_ = newinfo;
         }
 
         Optional(const T& value) {
+            ++opt_counter;
             value_ = std::make_shared<T>(const_cast<T&>(value));
             info_ = 'v';
         }
 
+        Optional(const Optional& other){
+            ++opt_counter;
+            value_ = other.value_;
+            info_ = other.info_;
+        }
+
+        ~Optional(){
+            --opt_counter;
+        }
 
         std::shared_ptr<T> GetValue() const {
             return this->value_;
@@ -47,7 +60,7 @@ private:
                     return other.info_ != 'b';
                 }
             } else if (this->info_ == 'b') {
-                return other.info_ == 'v' || other.info_ == 'e';
+                return other.info_ != 'b';
             } else {
                 return false;
             }
@@ -75,27 +88,35 @@ public:
         Node() = delete;
 
         explicit Node(char value_info) : value_(value_info) {
+            ++ctr;
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
         }
 
         explicit Node(const T& value) : value_(value) {
+            ++ctr;
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
         }
 
-        explicit Node(std::shared_ptr<Optional> value_info) : value_(*value_info) {
+        explicit Node(const Optional& value_info) : value_(value_info) {
+            ++ctr;
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
         }
 
         Node(const Node& other) : value_(other.value_) {
+            ++ctr;
             left_ = other.left_;
             down_ = other.down_;
             right_ = other.right_;
+        }
+
+        ~Node(){
+            --ctr;
         }
 
         std::shared_ptr<Node> down_;
@@ -279,7 +300,7 @@ private:
             if (!casted) {
                 return false;
             }
-            return casted->it_ == it_;
+            return it_ == casted->it_;
         }
     };
 
@@ -291,75 +312,60 @@ private:
         return std::make_shared<SkipListItImpl>(end_bot);
     }
 
-    std::shared_ptr<BaseImpl> FindImpl(std::shared_ptr<Node> from,
-                                            const Optional& value) const {
-        while(true) {
+    std::shared_ptr<BaseImpl> FindImpl(std::shared_ptr<Node> from, const Optional& value) const {
+        while (true) {
             if (!from->right_) {
                 return End();
             }
             if (from->right_->value_ < value) {
                 from = from->right_;
-            }
-            else if (!from->down_) {
-                    if (value < from->right_->value_) {
-                        return End();
-                    }
-                    return std::make_shared<SkipListItImpl>(from->right_);
+            } else if (!from->down_) {
+                if (value < from->right_->value_) {
+                    return End();
                 }
-            else {
+                return std::make_shared<SkipListItImpl>(from->right_);
+            } else {
                 from = from->down_;
             }
         }
     }
 
     static bool EraseImpl(std::shared_ptr<Node>& from, const Optional& value) {
-        while(true) {
-            if (!from->right_) {
+        if (!from->right_) {
+            return false;
+        }
+        if (from->right_->value_ < value) {
+            return EraseImpl(from->right_, value);
+        }
+        if (value < from->right_->value_) {
+            if (!from->down_) {
                 return false;
-            }
-            if (from->right_->value_ < value) {
-                from = from->right_;
-            }
-            else if (value < from->right_->value_) {
-                if (!from->down_) {
-                    return false;
-                } else {
-                    from = from->down_;
-                }
-            }
-            else {
-                break;
+            } else {
+                return EraseImpl(from->down_, value);
             }
         }
         auto cur_node = from->right_;
         auto next_node = cur_node->right_;
         next_node->left_ = from;
         from->right_ = next_node;
-        RemoveLevels(cur_node);
+        while (cur_node->down_) {
+            cur_node = cur_node->down_;
+            auto prev_from = cur_node->left_.lock();
+            next_node = cur_node->right_;
+            prev_from->right_ = next_node;
+            next_node->left_ = prev_from;
+        }
         return true;
     }
 
-    static void RemoveLevels(std::shared_ptr<Node> from) {
-        while (from->down_) {
-            from = from->down_;
-            auto prev_from = from->left_.lock();
-            auto next_node = from->right_;
-            prev_from->right_ = next_node;
-            next_node->left_.lock() = prev_from;
-        }
-        return;
-    }
-
     static std::shared_ptr<BaseImpl> LowerBoundImpl(std::shared_ptr<Node> from,
-                                                  const Optional& value)  {
-        while(true) {
+                                                    const Optional& value) {
+        while (true) {
             if (from->right_->value_ < value) {
                 from = from->right_;
-            }
-            else if (!from->down_) {
+            } else if (!from->down_) {
                 return std::make_shared<SkipListItImpl>(from->right_);
-            }
-            else {
+            } else {
                 from = from->down_;
             }
         }
@@ -392,10 +398,10 @@ private:
         }
     }
 
-    void BuildLvl(std::vector<std::shared_ptr<Node>> &node_path, std::shared_ptr<Node> from) {
+    void BuildLvl(std::vector<std::shared_ptr<Node>> node_path, std::shared_ptr<Node> from) {
         while (!Random::Next()) {
             std::shared_ptr<Node> up_node;
-            up_node = std::make_shared<Node>(std::make_shared<Optional> (from->value_));
+            up_node = std::make_shared<Node>(from->value_);
             up_node->down_ = from;
             if (node_path.size() != 0) {
                 auto prev = node_path.back();
@@ -418,6 +424,7 @@ private:
                 new_end->left_ = up_node;
                 head_top = new_head;
                 end_top = new_end;
+                break;
             }
             from = up_node;
         }
