@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <fstream>
@@ -27,7 +26,6 @@ public:
          */
         benchmarks_.emplace("%_simple_bench", SimpleBench);
     }
-
 
     struct Range {
         Range() = delete;

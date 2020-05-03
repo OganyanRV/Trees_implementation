@@ -4,8 +4,6 @@
 #include <iostream>
 #include <memory>
 
-uint64_t ctr = 0, opt_counter = 0;
-
 template <class T>
 class ITree;
 
@@ -24,24 +22,21 @@ private:
         Optional(Optional&&) = delete;
 
         Optional(char newinfo) {
-            ++opt_counter;
             info_ = newinfo;
         }
 
         Optional(const T& value) {
-            ++opt_counter;
             value_ = std::make_shared<T>(const_cast<T&>(value));
             info_ = 'v';
         }
 
-        Optional(const Optional& other){
-            ++opt_counter;
+        Optional(const Optional& other) {
             value_ = other.value_;
             info_ = other.info_;
         }
 
-        ~Optional(){
-            --opt_counter;
+        ~Optional() {
+            value_ = nullptr;
         }
 
         std::shared_ptr<T> GetValue() const {
@@ -88,35 +83,31 @@ public:
         Node() = delete;
 
         explicit Node(char value_info) : value_(value_info) {
-            ++ctr;
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
         }
 
         explicit Node(const T& value) : value_(value) {
-            ++ctr;
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
         }
 
         explicit Node(const Optional& value_info) : value_(value_info) {
-            ++ctr;
             left_ = std::weak_ptr<Node>();
             down_ = nullptr;
             right_ = nullptr;
         }
 
         Node(const Node& other) : value_(other.value_) {
-            ++ctr;
             left_ = other.left_;
             down_ = other.down_;
             right_ = other.right_;
         }
 
-        ~Node(){
-            --ctr;
+        ~Node() {
+            left_ = right_ = down_ = nullptr;
         }
 
         std::shared_ptr<Node> down_;
@@ -330,7 +321,7 @@ private:
         }
     }
 
-    static bool EraseImpl(std::shared_ptr<Node>& from, const Optional& value) {
+    bool EraseImpl(std::shared_ptr<Node>& from, const Optional& value) {
         if (!from->right_) {
             return false;
         }
@@ -348,12 +339,24 @@ private:
         auto next_node = cur_node->right_;
         next_node->left_ = from;
         from->right_ = next_node;
+        if (from == head_top && from->right_ == end_top) {
+            if (head_top->down_) {
+                head_top = head_top->down_;
+                end_top = end_top->down_;
+            }
+        }
         while (cur_node->down_) {
             cur_node = cur_node->down_;
             auto prev_from = cur_node->left_.lock();
             next_node = cur_node->right_;
             prev_from->right_ = next_node;
             next_node->left_ = prev_from;
+            if (prev_from == head_top && prev_from->right_ == end_top) {
+                if (head_top->down_) {
+                    head_top = head_top->down_;
+                    end_top = end_top->down_;
+                }
+            }
         }
         return true;
     }
