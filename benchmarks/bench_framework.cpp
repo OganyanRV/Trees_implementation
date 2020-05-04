@@ -13,10 +13,10 @@ class BenchFramework {
 public:
     BenchFramework() {
         // All types of trees are listed below.
-//        types_.emplace("AVL_tree", ImplType::kAVL);
-//        types_.emplace("Cartesian_tree", ImplType::kCartesian);
-//        types_.emplace("Red-Black_tree", ImplType::kRB);
-//        types_.emplace("Skip_list", ImplType::kSkipList);
+        types_.emplace("AVL_tree", ImplType::kAVL);
+        types_.emplace("Cartesian_tree", ImplType::kCartesian);
+        types_.emplace("Red-Black_tree", ImplType::kRB);
+        types_.emplace("Skip_list", ImplType::kSkipList);
         types_.emplace("Splay_tree", ImplType::kSplay);
 
         /* All benchmarks are listed below.
@@ -25,11 +25,11 @@ public:
          * You can also use your own symbol for your benchmarks.
          */
         benchmarks_.emplace("!_increasing_int_series_insert_bench", IncreasingIntSeriesInsert);
-//        benchmarks_.emplace("!_decreasing_int_series_insert_bench", DecreasingIntSeriesInsert);
-//        benchmarks_.emplace("!_converging_int_series_insert_bench", ConvergingIntSeriesInsert);
-//        benchmarks_.emplace("!_diverging_int_series_insert_bench", DivergingIntSeriesInsert);
-//        benchmarks_.emplace("!_random_sparse_int_series_insert_bench", RandomSparseIntSeriesInsert);
-//        benchmarks_.emplace("!_random_dense_int_series_insert_bench", RandomDenseIntSeriesInsert);
+        benchmarks_.emplace("!_decreasing_int_series_insert_bench", DecreasingIntSeriesInsert);
+        benchmarks_.emplace("!_converging_int_series_insert_bench", ConvergingIntSeriesInsert);
+        benchmarks_.emplace("!_diverging_int_series_insert_bench", DivergingIntSeriesInsert);
+        benchmarks_.emplace("!_random_sparse_int_series_insert_bench", RandomSparseIntSeriesInsert);
+        benchmarks_.emplace("!_random_dense_int_series_insert_bench", RandomDenseIntSeriesInsert);
     }
 
     struct Range {

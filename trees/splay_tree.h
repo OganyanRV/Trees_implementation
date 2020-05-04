@@ -196,7 +196,7 @@ public:
                 } else {
                     new_node->parent_ = cur;
                     cur->left_ = new_node;
-                    if(begin_ == cur){
+                    if (begin_ == cur) {
                         begin_ = new_node;
                     }
                     cur = cur->left_;
@@ -243,9 +243,29 @@ public:
             }
         }
         Splay(cur_node);
+        if (root_ == begin_) {
+            auto it = std::dynamic_pointer_cast<SplayTreeItImpl>(Begin());
+            it->Increment();
+            begin_ = it->GetPointer();
+        }
         --size_;
-        root_ = Merge(root_->left_, root_->right_);
-        UpdateBegin();
+        std::shared_ptr<Node> left_sub = root_->left_, right_sub = root_->right_;
+        root_ = right_sub;
+        cur_node = root_;
+        while (left_sub) {
+            right_sub = right_sub->left_;
+            cur_node->left_ = left_sub;
+            left_sub->parent_ = cur_node;
+            cur_node = cur_node->left_;
+            if (right_sub) {
+                left_sub = left_sub->right_;
+                cur_node->right_ = right_sub;
+                right_sub->parent_ = cur_node;
+                cur_node = cur_node->right_;
+            } else {
+                break;
+            }
+        }
     }
 
     void Clear() override {
@@ -366,35 +386,6 @@ private:
 
     std::shared_ptr<BaseImpl> End() const override {
         return std::make_shared<SplayTreeItImpl>(end_);
-    }
-
-    std::shared_ptr<Node> Merge(std::shared_ptr<Node> left_subtree,
-                                std::shared_ptr<Node> right_subtree) {
-        if (!right_subtree) {
-            return left_subtree;
-        } else if (!left_subtree) {
-            return right_subtree;
-        } else if (left_subtree < right_subtree) {
-            left_subtree->right_ = Merge(left_subtree->right_, right_subtree);
-            if (left_subtree->right_) {
-                left_subtree->right_->parent_ = left_subtree;
-            }
-            return left_subtree;
-        } else {
-            right_subtree->left_ = Merge(left_subtree, right_subtree->left_);
-            if (right_subtree->left_) {
-                right_subtree->left_->parent_ = right_subtree;
-            }
-            return right_subtree;
-        }
-    }
-
-    void UpdateBegin() {
-        std::shared_ptr<Node> cur(root_);
-        while (cur->left_) {
-            cur = cur->left_;
-        }
-        begin_ = cur;
     }
 
     void Splay(std::shared_ptr<Node> from) {

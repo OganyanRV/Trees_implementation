@@ -2,6 +2,6 @@
 
 int main() {
     BenchFramework framework;
-    framework.RunAllBenchmarks("../experiments/", BenchFramework::Range(100000, 100001));
+    framework.RunAllBenchmarks("../experiments/", BenchFramework::Range(1, 100001, 10, true));
     return 0;
 }
