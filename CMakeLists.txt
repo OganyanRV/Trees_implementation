@@ -3,6 +3,11 @@ project(Trees)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+if (CMAKE_BUILD_TYPE EQUAL "Release")
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+endif ()
 
 include(cmake/BuildFlags.cmake)
 
@@ -11,7 +16,8 @@ set(TREES trees/abstract_tree.h
         trees/cartesian_tree.h
         trees/rb_tree.h
         trees/skip_list.h
-        trees/splay_tree.h)
+        trees/splay_tree.h
+        trees/stdlib_set.h)
 
 set(TESTS tests/full_test_set.h
         tests/test_framework.cpp)

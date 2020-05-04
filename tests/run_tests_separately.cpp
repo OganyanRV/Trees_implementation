@@ -26,3 +26,8 @@ TEST_CASE("Test Splay") {
     TestFramework framework;
     framework.RunAll(Substr("Splay"));
 }
+
+TEST_CASE("Test set") {
+    TestFramework framework;
+    framework.RunAll(Substr("set"));
+}

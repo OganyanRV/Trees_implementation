@@ -13,6 +13,7 @@
 #include "../trees/rb_tree.h"
 #include "../trees/skip_list.h"
 #include "../trees/splay_tree.h"
+#include "../trees/stdlib_set.h"
 
 // #define RELEASE_BUILD
 
@@ -22,7 +23,7 @@
  * Don't forget to name your test!
  */
 
-enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay };
+enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay, kSet };
 
 /* This function returns a new tree of given type 'type'
  * as a shared pointer to base class.
@@ -39,6 +40,8 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
         return std::make_shared<SkipList<T>>(params...);
     } else if (type == ImplType::kSplay) {
         return std::make_shared<SplayTree<T>>(params...);
+    } else if (type == ImplType::kSet) {
+        return std::make_shared<StdlibSet<T>>(params...);
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -61,6 +64,8 @@ void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
         *dynamic_cast<SkipList<T>*>(lhs.get()) = *dynamic_cast<SkipList<T>*>(rhs.get());
     } else if (type == ImplType::kSplay) {
         *dynamic_cast<SplayTree<T>*>(lhs.get()) = *dynamic_cast<SplayTree<T>*>(rhs.get());
+    } else if (type == ImplType::kSet) {
+        *dynamic_cast<StdlibSet<T>*>(lhs.get()) = *dynamic_cast<StdlibSet<T>*>(rhs.get());
     } else {
         throw std::runtime_error("Impossible behaviour");
     }

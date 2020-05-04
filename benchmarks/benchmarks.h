@@ -10,10 +10,11 @@
 #include "../trees/rb_tree.h"
 #include "../trees/skip_list.h"
 #include "../trees/splay_tree.h"
+#include "../trees/stdlib_set.h"
 
 #define nanoMultiplier 1e-6
 
-enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay };
+enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay, kSet };
 
 /* This function returns a new tree of given type 'type'
  * as a shared pointer to base class.
@@ -30,6 +31,8 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
         return std::make_shared<SkipList<T>>(params...);
     } else if (type == ImplType::kSplay) {
         return std::make_shared<SplayTree<T>>(params...);
+    } else if (type == ImplType::kSet) {
+        return std::make_shared<StdlibSet<T>>(params...);
     } else {
         throw std::runtime_error("Impossible behaviour");
     }

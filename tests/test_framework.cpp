@@ -25,6 +25,7 @@ public:
         types_.emplace("Red-Black tree", ImplType::kRB);
         types_.emplace("Skip list", ImplType::kSkipList);
         types_.emplace("Splay tree", ImplType::kSplay);
+        // types_.emplace("Stdlib set", ImplType::kSet);
 
         /* All tests are listed below.
          * We'll use '!' for good tests that we are sure of,

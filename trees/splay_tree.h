@@ -9,8 +9,6 @@
 template <class T>
 class ITree;
 
-int cnt = 0;
-
 template <class T>
 class SplayTree : public ITree<T> {
 private:
@@ -19,25 +17,21 @@ private:
 public:
     struct Node {
         Node() {
-            ++cnt;
             parent_ = left_ = right_ = nullptr;
             value_ = std::nullopt;
         }
 
         explicit Node(const T& value) : value_(value) {
-            ++cnt;
             parent_ = left_ = right_ = nullptr;
         }
 
         Node(const Node& other) : value_(other.value_) {
-            ++cnt;
             left_ = other.left_;
             parent_ = other.parent_;
             right_ = other.right_;
         }
 
         ~Node() {
-            --cnt;
             left_ = nullptr;
             right_ = nullptr;
         }

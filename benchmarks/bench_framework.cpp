@@ -18,6 +18,7 @@ public:
         types_.emplace("Red-Black_tree", ImplType::kRB);
         types_.emplace("Skip_list", ImplType::kSkipList);
         types_.emplace("Splay_tree", ImplType::kSplay);
+        types_.emplace("Stdlib_set", ImplType::kSet);
 
         /* All benchmarks are listed below.
          * We'll use '!' for good benchmarks that we need,
