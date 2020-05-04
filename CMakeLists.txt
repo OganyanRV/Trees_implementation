@@ -17,7 +17,8 @@ set(TREES trees/abstract_tree.h
         trees/rb_tree.h
         trees/skip_list.h
         trees/splay_tree.h
-        trees/stdlib_set.h)
+        trees/stdlib_set.h
+        trees/gavno.h)
 
 set(TESTS tests/full_test_set.h
         tests/test_framework.cpp)

@@ -19,6 +19,7 @@ public:
         types_.emplace("Skip_list", ImplType::kSkipList);
         types_.emplace("Splay_tree", ImplType::kSplay);
         types_.emplace("Stdlib_set", ImplType::kSet);
+        // types_.emplace("Gavno", ImplType::kGavno);
 
         /* All benchmarks are listed below.
          * We'll use '!' for good benchmarks that we need,
