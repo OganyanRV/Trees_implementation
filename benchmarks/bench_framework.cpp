@@ -13,26 +13,33 @@ class BenchFramework {
 public:
     BenchFramework() {
         // All types of trees are listed below.
-        //types_.emplace("AVL tree", ImplType::kAVL);
-        //types_.emplace("Cartesian tree", ImplType::kCartesian);
-        //types_.emplace("Red-Black tree", ImplType::kRB);
-        types_.emplace("Skip list", ImplType::kSkipList);
-        //types_.emplace("Splay tree", ImplType::kSplay);
+//        types_.emplace("AVL_tree", ImplType::kAVL);
+//        types_.emplace("Cartesian_tree", ImplType::kCartesian);
+//        types_.emplace("Red-Black_tree", ImplType::kRB);
+//        types_.emplace("Skip_list", ImplType::kSkipList);
+        types_.emplace("Splay_tree", ImplType::kSplay);
 
         /* All benchmarks are listed below.
          * We'll use '!' for good benchmarks that we need,
          * '%' for useless and demonstrative benchmarks.
          * You can also use your own symbol for your benchmarks.
          */
-        benchmarks_.emplace("%_simple_bench", SimpleBench);
+        benchmarks_.emplace("!_increasing_int_series_insert_bench", IncreasingIntSeriesInsert);
+//        benchmarks_.emplace("!_decreasing_int_series_insert_bench", DecreasingIntSeriesInsert);
+//        benchmarks_.emplace("!_converging_int_series_insert_bench", ConvergingIntSeriesInsert);
+//        benchmarks_.emplace("!_diverging_int_series_insert_bench", DivergingIntSeriesInsert);
+//        benchmarks_.emplace("!_random_sparse_int_series_insert_bench", RandomSparseIntSeriesInsert);
+//        benchmarks_.emplace("!_random_dense_int_series_insert_bench", RandomDenseIntSeriesInsert);
     }
 
     struct Range {
         Range() = delete;
-        Range(uint64_t begin, uint64_t end, uint64_t step = 1, uint64_t num_folds = 5) {
+        Range(uint64_t begin, uint64_t end, uint64_t step = 1, bool log_scale = false,
+              uint64_t num_folds = 5) {
             begin_ = begin;
             end_ = end;
             step_ = step;
+            log_scale_ = log_scale;
             num_folds_ = num_folds;
         }
 
@@ -40,6 +47,7 @@ public:
         uint64_t end_;
         uint64_t step_;
         uint64_t num_folds_;
+        bool log_scale_;
     };
 
     template <class BenchPredicate>
@@ -50,6 +58,7 @@ public:
         for (auto &bench : benchmarks_) {
             if (bench_predicate(bench.first)) {
                 cout << "Running " << bench.first << ": ";
+                auto begin = std::chrono::high_resolution_clock::now();
                 std::ofstream out(path + bench.first + ".csv");
                 out.precision(3);
                 out << "op_count";
@@ -59,11 +68,42 @@ public:
                     }
                 }
                 try {
-                    for (uint64_t i = range.begin_; i < range.end_; i += range.step_) {
-                        out << '\n' << std::to_string(i);
+                    if (range.log_scale_) {
+                        assert(range.step_ > 1);
+                        long double step = std::pow((long double)(range.end_) / range.begin_,
+                                                    1.0l / (range.step_ - 1));
+                        long double cur_approx = range.begin_;
+                        uint64_t prev = 0;
+                        for (uint64_t i = 1; i < range.step_; ++i) {
+                            uint64_t cur = std::floor(cur_approx);
+                            if(cur == prev){
+                                cur_approx *= step;
+                                continue;
+                            }
+                            out << '\n' << std::to_string(cur);
+                            for (auto &type : types_) {
+                                for (uint64_t fold = 0; fold < range.num_folds_; ++fold) {
+                                    out << ", " << std::fixed
+                                        << bench.second(type.second, gen, cur);
+                                }
+                            }
+                            cur_approx *= step;
+                            prev = cur;
+                        }
+                        out << '\n' << std::to_string(range.end_);
                         for (auto &type : types_) {
                             for (uint64_t fold = 0; fold < range.num_folds_; ++fold) {
-                                out << ", " << std::fixed << bench.second(type.second, gen, i);
+                                out << ", " << std::fixed
+                                    << bench.second(type.second, gen, range.end_);
+                            }
+                        }
+                    } else {
+                        for (uint64_t i = range.begin_; i <= range.end_; i += range.step_) {
+                            out << '\n' << std::to_string(i);
+                            for (auto &type : types_) {
+                                for (uint64_t fold = 0; fold < range.num_folds_; ++fold) {
+                                    out << ", " << std::fixed << bench.second(type.second, gen, i);
+                                }
                             }
                         }
                     }
@@ -74,7 +114,11 @@ public:
                             "EXCEPTIONS\n";
                 }
                 out.close();
-                cout << "OK\n\n";
+                auto end = std::chrono::high_resolution_clock::now();
+                double time =
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+                    nanoMultiplier;
+                cout << "OK. Time spent: " << time << "ms\n\n";
             }
         }
     }

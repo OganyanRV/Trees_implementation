@@ -8,6 +8,8 @@
 template <class T>
 class ITree;
 
+int cnt = 0;
+
 template <class T>
 class SplayTree : public ITree<T> {
 private:
@@ -16,32 +18,37 @@ private:
 public:
     struct Node {
         Node() {
-            left_ = nullptr;
-            parent_ = std::weak_ptr<Node>();
-            right_ = nullptr;
+            ++cnt;
+            parent_ = left_ = right_ = nullptr;
             value_ = std::nullopt;
         }
 
         explicit Node(const T& value) : value_(value) {
-            left_ = nullptr;
-            parent_ = std::weak_ptr<Node>();
-            right_ = nullptr;
+            ++cnt;
+            parent_ = left_ = right_ = nullptr;
         }
 
         Node(const Node& other) : value_(other.value_) {
+            ++cnt;
             left_ = other.left_;
             parent_ = other.parent_;
             right_ = other.right_;
         }
 
+        ~Node() {
+            --cnt;
+            left_ = nullptr;
+            right_ = nullptr;
+        }
+
         std::shared_ptr<Node> left_;
-        std::weak_ptr<Node> parent_;
         std::shared_ptr<Node> right_;
+        std::weak_ptr<Node> parent_;
         std::optional<T> value_;
     };
 
     SplayTree() {
-        begin_ = root_ = end_ = std::make_shared<Node>();
+        begin_ = end_ = root_ = std::make_shared<Node>();
         size_ = 0;
     }
 
@@ -79,9 +86,7 @@ public:
         if (root_ == other.root_) {
             return *this;
         }
-        root_ = std::make_shared<Node>();
-        begin_ = root_;
-        end_ = root_;
+        begin_ = end_ = root_ = std::make_shared<Node>();
         size_ = 0;
         for (const T& value : other) {
             Insert(value);
@@ -115,32 +120,123 @@ public:
 
     std::shared_ptr<BaseImpl> Find(const T& value) const override {
         std::optional<T> val(value);
-        return const_cast<SplayTree<T>*>(this)->FindImpl(root_, val);
+        std::shared_ptr<Node> cur_node = root_;
+        while (cur_node) {
+            if (val < cur_node->value_) {
+                if (cur_node->left_) {
+                    cur_node = cur_node->left_;
+                } else {
+                    const_cast<SplayTree<T>*>(this)->Splay(cur_node);
+                    return End();
+                }
+            } else if (cur_node->value_ < val) {
+                if (cur_node->right_) {
+                    cur_node = cur_node->right_;
+                } else {
+                    const_cast<SplayTree<T>*>(this)->Splay(cur_node);
+                    return End();
+                }
+            } else {
+                const_cast<SplayTree<T>*>(this)->Splay(cur_node);
+                return std::make_shared<SplayTreeItImpl>(root_);
+            }
+        }
+        return End();
     }
 
     std::shared_ptr<BaseImpl> LowerBound(const T& value) const override {
         std::optional<T> val(value);
-        return const_cast<SplayTree<T>*>(this)->LowerBoundImpl(root_, val);
+        std::shared_ptr<Node> cur = root_;
+        while (true) {
+            if (val < cur->value_) {
+                if (cur->left_) {
+                    cur = cur->left_;
+                } else {
+                    const_cast<SplayTree<T>*>(this)->Splay(cur);
+                    return std::make_shared<SplayTreeItImpl>(root_);
+                }
+            } else if (cur->value_ < val) {
+                if (cur->right_) {
+                    cur = cur->right_;
+                } else {
+                    auto it = std::make_shared<SplayTreeItImpl>(cur);
+                    it->Increment();
+                    const_cast<SplayTree<T>*>(this)->Splay(it->GetPointer());
+                    return it;
+                }
+            } else {
+                const_cast<SplayTree<T>*>(this)->Splay(cur);
+                return std::make_shared<SplayTreeItImpl>(root_);
+            }
+        }
     }
 
     void Insert(const T& value) override {
         std::shared_ptr<Node> new_node = std::make_shared<Node>(value);
-        if (InsertImpl(root_, new_node)) {
-            ++size_;
+        std::shared_ptr<Node> cur = root_;
+        while (true) {
+            if (new_node->value_ < cur->value_) {
+                if (cur->left_) {
+                    cur = cur->left_;
+                } else {
+                    new_node->parent_ = cur;
+                    cur->left_ = new_node;
+                    if(begin_ == cur){
+                        begin_ = new_node;
+                    }
+                    cur = cur->left_;
+                    break;
+                }
+            } else if (cur->value_ < new_node->value_) {
+                if (cur->right_) {
+                    cur = cur->right_;
+                } else {
+                    new_node->parent_ = cur;
+                    cur->right_ = new_node;
+                    cur = cur->right_;
+                    break;
+                }
+            } else {
+                Splay(cur);
+                return;
+            }
         }
+        Splay(cur);
+        ++size_;
+        return;
     }
 
     void Erase(const T& value) override {
         std::optional<T> val(value);
-        if (EraseImpl(root_, value)) {
-            --size_;
+        auto cur_node = root_;
+        while (true) {
+            if (val < cur_node->value_) {
+                if (cur_node->left_) {
+                    cur_node = cur_node->left_;
+                } else {
+                    Splay(cur_node);
+                    return;
+                }
+            } else if (cur_node->value_ < val) {
+                if (cur_node->right_) {
+                    cur_node = cur_node->right_;
+                } else {
+                    Splay(cur_node);
+                    return;
+                }
+            } else {
+                break;
+            }
         }
+        Splay(cur_node);
+        --size_;
+        root_ = Merge(root_->left_, root_->right_);
+        UpdateBegin();
+        return;
     }
 
     void Clear() override {
-        root_ = std::make_shared<Node>();
-        begin_ = root_;
-        end_ = root_;
+        begin_ = end_ = root_ = std::make_shared<Node>();
         size_ = 0;
     }
 
@@ -162,10 +258,14 @@ private:
     public:
         SplayTreeItImpl() = delete;
 
-        explicit SplayTreeItImpl(std::shared_ptr<Node> ptr) : it_(ptr) {
+        explicit SplayTreeItImpl(std::shared_ptr<Node> other) : it_(other) {
         }
 
         SplayTreeItImpl(const SplayTreeItImpl& other) : it_(other.it_) {
+        }
+
+        std::shared_ptr<Node> GetPointer() {
+            return it_;
         }
 
         std::shared_ptr<BaseImpl> Clone() const override {
@@ -182,13 +282,10 @@ private:
                     it_ = it_->left_;
                 }
             } else {
-                auto parent = it_->parent_.lock();
-                while (parent && (parent->right_ == it_)) {
-                    it_ = parent;
-                    parent = it_->parent_.lock();
+                while (it_->parent_.lock()->right_ == it_) {
+                    it_ = it_->parent_.lock();
                 }
-
-                it_ = parent;
+                it_ = it_->parent_.lock();
             }
         }
 
@@ -243,34 +340,6 @@ private:
         return std::make_shared<SplayTreeItImpl>(end_);
     }
 
-    std::shared_ptr<BaseImpl> FindImpl(std::shared_ptr<Node> from,
-                                            const std::optional<T>& value) {
-        auto cur_node = std::shared_ptr<Node>(from);
-        while (true) {
-            if (!from) {
-                return End();
-            }
-            if (value < cur_node->value_) {
-                if (cur_node->left_) {
-                    cur_node = cur_node->left_;
-                } else {
-                    Splay(cur_node);
-                    return End();
-                }
-            } else if (cur_node->value_ < value) {
-                if (cur_node->right_) {
-                    cur_node = cur_node->right_;
-                } else {
-                    Splay(cur_node);
-                    return End();
-                }
-            } else {
-                Splay(cur_node);
-                return std::make_shared<SplayTreeItImpl>(root_);
-            }
-        }
-    }
-
     std::shared_ptr<Node> Merge(std::shared_ptr<Node> left_subtree,
                                 std::shared_ptr<Node> right_subtree) {
         if (!right_subtree) {
@@ -292,180 +361,148 @@ private:
         }
     }
 
-    bool EraseImpl(std::shared_ptr<Node>& from, const std::optional<T>& value) {
-        auto cur_node = std::shared_ptr<Node>(from);
-        while (true) {
-            if (!from) {
-                return false;
-            }
-            if (value < cur_node->value_) {
-                if (cur_node->left_) {
-                    cur_node = cur_node->left_;
-                } else {
-                   Splay(cur_node);
-                   return false;
-                }
-            } else if (cur_node->value_ < value) {
-                if (cur_node->right_) {
-                    cur_node = cur_node->right_;
-                } else {
-                    Splay(cur_node);
-                    return false;
-                }
-            } else {
-                Splay(cur_node);
-                root_ = Merge(root_->left_, root_->right_);
-                UpdateBegin();
-                return true;
-            }
-        }
-    }
-
-    bool InsertImpl(std::shared_ptr<Node> from, std::shared_ptr<Node> new_node) {
-        if (!from) {
-            root_ = new_node;
-            return true;
-        }
-        bool CycleControl = true;
-        auto tmp = std::shared_ptr<Node>(from);
-        while (CycleControl) {
-            if (new_node->value_ < tmp->value_) {
-                if (tmp->left_) {
-                    tmp = tmp->left_;
-                } else {
-                    new_node->parent_ = tmp;
-                    tmp->left_ = new_node;
-                    tmp = tmp->left_;
-                    CycleControl = false;
-                }
-            } else if (tmp->value_ < new_node->value_) {
-                if (tmp->right_) {
-                    tmp = tmp->right_;
-                } else {
-                    new_node->parent_ = tmp;
-                    tmp->right_ = new_node;
-                    tmp = tmp->right_;
-                    CycleControl = false;
-                }
-            } else {
-                Splay(tmp);
-                return false;
-            }
-        }
-        Splay(tmp);
-        return true;
-    }
-
-    std::shared_ptr<BaseImpl> LowerBoundImpl(std::shared_ptr<Node> from,
-                                                  const std::optional<T>& value) {
-        if (value < from->value_) {
-            if (from->left_) {
-                return LowerBoundImpl(from->left_, value);
-            } else {
-                return std::make_shared<SplayTreeItImpl>(from);
-            }
-        } else if (from->value_ < value) {
-            if (from->right_) {
-                return LowerBoundImpl(from->right_, value);
-            } else {
-                Splay(from);
-                auto tmp = std::make_shared<SplayTreeItImpl>(from);
-                tmp->Increment();
-                return tmp;
-            }
-        } else {
-            Splay(from);
-            return std::make_shared<SplayTreeItImpl>(from);
-        }
-    }
-
     void UpdateBegin() {
-        std::shared_ptr<Node> tmp(root_);
-        while (tmp->left_) {
-            tmp = tmp->left_;
+        std::shared_ptr<Node> cur(root_);
+        while (cur->left_) {
+            cur = cur->left_;
         }
-        begin_ = tmp;
+        begin_ = cur;
     }
 
     void Splay(std::shared_ptr<Node> from) {
-        while (true) {
-            std::shared_ptr<Node> par = from->parent_.lock();
-            if (!par) {
-                break;
-            }
-            std::shared_ptr<Node> grandpar = par->parent_.lock();
-            if (!grandpar)  // Zig
-            {
-                if (par->right_ == from) {
-                    LeftRotate(par);
+        std::shared_ptr<Node> parent = from->parent_.lock();
+        while (parent) {
+            std::shared_ptr<Node> grandparent = parent->parent_.lock();
+            if (!grandparent) {
+                if (parent->right_ == from) {
+                    Zag(from, parent);
                 } else {
-                    RightRotate(par);
+                    Zig(from, parent);
                 }
                 break;
             }
-            if (grandpar->right_ == par) {
-                if (par->right_ == from) {  // ZigZig
-                    LeftRotate(grandpar);
-                    LeftRotate(par);
-                } else {  // ZigZag
-                    RightRotate(par);
-                    LeftRotate(grandpar);
+            if (grandparent->right_ == parent) {
+                if (parent->right_ == from) {
+                    ZagZag(from, parent, grandparent);
+                } else {
+                    ZagZig(from, parent, grandparent);
                 }
             } else {
-                if (par->right_ == from) {  // ZigZag
-                    LeftRotate(par);
-                    RightRotate(grandpar);
-                } else {  // ZigZig
-                    RightRotate(grandpar);
-                    RightRotate(par);
+                if (parent->right_ == from) {
+                    ZigZag(from, parent, grandparent);
+                } else {
+                    ZigZig(from, parent, grandparent);
                 }
             }
+            parent = from->parent_.lock();
         }
         root_ = from;
-        UpdateBegin();
     }
 
-    void RightRotate(std::shared_ptr<Node>& from) {
-        std::shared_ptr<Node> par = from->parent_.lock();
-        std::shared_ptr<Node> left = from->left_;
-        if (par) {
-            if (par->right_ == from) {
-                par->right_ = left;
-            } else {
-                par->left_ = left;
-            }
+    static void Zig(std::shared_ptr<Node> x, std::shared_ptr<Node> y) {
+        std::shared_ptr<Node> hanger = y->parent_.lock();
+        bool left_child = hanger && hanger->left_ == y;
+        y->left_ = x->right_;
+        if (y->left_) {
+            y->left_->parent_ = y;
         }
-        if (left) {
-            std::shared_ptr<Node> leftright = left->right_;
-            if (leftright) {
-                leftright->parent_ = from;
-            }
-            left->parent_ = par;
-            left->right_ = from;
-            from->left_ = leftright;
-        }
-        from->parent_ = left;
+        x->right_ = y;
+        y->parent_ = x;
+        SetHanger(x, hanger, left_child);
     }
 
-    void LeftRotate(std::shared_ptr<Node>& from) {
-        std::shared_ptr<Node> par = from->parent_.lock();
-        std::shared_ptr<Node> right = from->right_;
-        if (par) {
-            if (par->left_ == from) {
-                par->left_ = right;
+    static void Zag(std::shared_ptr<Node> x, std::shared_ptr<Node> y) {
+        std::shared_ptr<Node> hanger = y->parent_.lock();
+        bool left_child = hanger && hanger->left_ == y;
+        y->right_ = x->left_;
+        if (y->right_) {
+            y->right_->parent_ = y;
+        }
+        x->left_ = y;
+        y->parent_ = x;
+        SetHanger(x, hanger, left_child);
+    }
+
+    static void ZigZig(std::shared_ptr<Node> x, std::shared_ptr<Node> y, std::shared_ptr<Node> z) {
+        std::shared_ptr<Node> hanger = z->parent_.lock();
+        bool left_child = hanger && hanger->left_ == z;
+        z->left_ = y->right_;
+        if (z->left_) {
+            z->left_->parent_ = z;
+        }
+        z->parent_ = y;
+        y->right_ = z;
+        y->left_ = x->right_;
+        if (y->left_) {
+            y->left_->parent_ = y;
+        }
+        y->parent_ = x;
+        x->right_ = y;
+        SetHanger(x, hanger, left_child);
+    }
+
+    static void ZagZag(std::shared_ptr<Node> x, std::shared_ptr<Node> y, std::shared_ptr<Node> z) {
+        std::shared_ptr<Node> hanger = z->parent_.lock();
+        bool left_child = hanger && hanger->left_ == z;
+        z->right_ = y->left_;
+        if (z->right_) {
+            z->right_->parent_ = z;
+        }
+        z->parent_ = y;
+        y->left_ = z;
+        y->right_ = x->left_;
+        if (y->right_) {
+            y->right_->parent_ = y;
+        }
+        y->parent_ = x;
+        x->left_ = y;
+        SetHanger(x, hanger, left_child);
+    }
+
+    static void ZigZag(std::shared_ptr<Node> x, std::shared_ptr<Node> y, std::shared_ptr<Node> z) {
+        std::shared_ptr<Node> hanger = z->parent_.lock();
+        bool left_child = hanger && hanger->left_ == z;
+        z->left_ = x->right_;
+        if (z->left_) {
+            z->left_->parent_ = z;
+        }
+        z->parent_ = x;
+        x->right_ = z;
+        y->right_ = x->left_;
+        if (y->right_) {
+            y->right_->parent_ = y;
+        }
+        y->parent_ = x;
+        x->left_ = y;
+        SetHanger(x, hanger, left_child);
+    }
+
+    static void ZagZig(std::shared_ptr<Node> x, std::shared_ptr<Node> y, std::shared_ptr<Node> z) {
+        std::shared_ptr<Node> hanger = z->parent_.lock();
+        bool left_child = hanger && hanger->left_ == z;
+        z->right_ = x->left_;
+        if (z->right_) {
+            z->right_->parent_ = z;
+        }
+        z->parent_ = x;
+        x->left_ = z;
+        y->left_ = x->right_;
+        if (y->left_) {
+            y->left_->parent_ = y;
+        }
+        y->parent_ = x;
+        x->right_ = y;
+        SetHanger(x, hanger, left_child);
+    }
+
+    static void SetHanger(std::shared_ptr<Node> x, std::shared_ptr<Node> hanger, bool left_child) {
+        x->parent_ = hanger;
+        if (hanger) {
+            if (left_child) {
+                hanger->left_ = x;
             } else {
-                par->right_ = right;
+                hanger->right_ = x;
             }
         }
-        if (right) {
-            std::shared_ptr<Node> rightleft = right->left_;
-            if (rightleft) {
-                rightleft->parent_ = from;
-            }
-            right->parent_ = par;
-            right->left_ = from;
-            from->right_ = rightleft;
-        }
-        from->parent_ = right;
     }
 };

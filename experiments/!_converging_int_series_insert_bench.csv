@@ -1,0 +1,3 @@
+op_count, Splay_tree_split_0, Splay_tree_split_1, Splay_tree_split_2, Splay_tree_split_3, Splay_tree_split_4
+50000, 81.138, 77.509, 77.453, 72.095, 193.456
+50001, 327.042, 189.640, 187.327, 234.898, 212.249
