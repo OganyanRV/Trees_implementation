@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <queue>
 
 template <class T>
 class ITree;
@@ -106,8 +107,22 @@ public:
     }
 
     ~SplayTree() override {
-        root_ = begin_ = end_ = nullptr;
         size_ = 0;
+        std::queue<std::shared_ptr<Node>> nodes;
+        nodes.emplace(root_);
+        begin_ = end_ = root_ = nullptr;
+        while (!nodes.empty()) {
+            std::shared_ptr<Node> cur = nodes.front();
+            nodes.pop();
+            if (cur->left_) {
+                nodes.emplace(cur->left_);
+            }
+            if (cur->right_) {
+                nodes.emplace(cur->right_);
+            }
+            cur->left_ = nullptr;
+            cur->right_ = nullptr;
+        }
     }
 
     [[nodiscard]] size_t Size() const override {
@@ -203,7 +218,6 @@ public:
         }
         Splay(cur);
         ++size_;
-        return;
     }
 
     void Erase(const T& value) override {
@@ -232,12 +246,26 @@ public:
         --size_;
         root_ = Merge(root_->left_, root_->right_);
         UpdateBegin();
-        return;
     }
 
     void Clear() override {
-        begin_ = end_ = root_ = std::make_shared<Node>();
         size_ = 0;
+        std::queue<std::shared_ptr<Node>> nodes;
+        nodes.emplace(root_);
+        begin_ = end_ = root_ = nullptr;
+        while (!nodes.empty()) {
+            std::shared_ptr<Node> cur = nodes.front();
+            nodes.pop();
+            if (cur->left_) {
+                nodes.emplace(cur->left_);
+            }
+            if (cur->right_) {
+                nodes.emplace(cur->right_);
+            }
+            cur->left_ = nullptr;
+            cur->right_ = nullptr;
+        }
+        begin_ = end_ = root_ = std::make_shared<Node>();
     }
 
 private:
