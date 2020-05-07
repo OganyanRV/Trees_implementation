@@ -11,11 +11,10 @@
 #include "../trees/skip_list.h"
 #include "../trees/splay_tree.h"
 #include "../trees/stdlib_set.h"
-#include "../trees/gavno.h"
 
 #define nanoMultiplier 1e-6
 
-enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay, kSet, kGavno };
+enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay, kSet };
 
 /* This function returns a new tree of given type 'type'
  * as a shared pointer to base class.
@@ -34,8 +33,6 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
         return std::make_shared<SplayTree<T>>(params...);
     } else if (type == ImplType::kSet) {
         return std::make_shared<StdlibSet<T>>(params...);
-    } else if (type == ImplType::kGavno) {
-        return std::make_shared<GavnoTree<T>>(params...);
     } else {
         throw std::runtime_error("Impossible behaviour");
     }
@@ -106,6 +103,36 @@ double RandomDenseIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op_
     std::uniform_int_distribution dist(0ul, op_count / 5);
     for (uint64_t i = 0; i < op_count; ++i) {
         tree->insert(dist(gen));
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double IncreasingIntSeriesEraseAfterIncreasingSeriesInsert(ImplType type, std::mt19937& gen,
+                                                           uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->insert(i);
+    }
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->erase(i);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double DecreasingIntSeriesEraseAfterIncreasingSeriesInsert(ImplType type, std::mt19937& gen,
+                                                           uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->insert(i);
+    }
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = op_count - 1; i >= 0; --i) {
+        tree->erase(i);
     }
     auto end = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
