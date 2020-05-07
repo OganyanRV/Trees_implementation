@@ -3,7 +3,6 @@
 #include <fstream>
 #include <map>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -60,7 +59,7 @@ private:
         std::pair<const std::string, std::function<double(ImplType, std::mt19937 &, uint64_t)>>
             &bench,
         const std::string &path, const Range &range, const std::map<std::string, ImplType> &types,
-        std::mt19937 &gen) {
+        std::mt19937 gen) {
         auto begin = std::chrono::high_resolution_clock::now();
         std::ofstream out(path + bench.first + ".csv");
         out.precision(3);
@@ -73,7 +72,6 @@ private:
         try {
             if (range.log_scale_) {
                 assert(range.step_ > 1);
-                std::stringstream ss;
                 long double step =
                     std::pow((long double)(range.end_) / range.begin_, 1.0l / (range.step_ - 1));
                 long double cur_approx = range.begin_;
@@ -84,33 +82,30 @@ private:
                         cur_approx *= step;
                         continue;
                     }
-                    ss << '\n' << std::to_string(cur);
+                    out << '\n' << std::to_string(cur);
                     for (auto &type : types) {
                         for (uint64_t fold = 0; fold < range.num_folds_; ++fold) {
-                            ss << ", " << std::fixed << bench.second(type.second, gen, cur);
+                            out << ", " << std::fixed << bench.second(type.second, gen, cur);
                         }
                     }
                     cur_approx *= step;
                     prev = cur;
                 }
-                ss << '\n' << std::to_string(range.end_);
+                out << '\n' << std::to_string(range.end_);
                 for (auto &type : types) {
                     for (uint64_t fold = 0; fold < range.num_folds_; ++fold) {
-                        ss << ", " << std::fixed << bench.second(type.second, gen, range.end_);
+                        out << ", " << std::fixed << bench.second(type.second, gen, range.end_);
                     }
                 }
-                out << ss.rdbuf();
             } else {
-                std::stringstream ss;
                 for (uint64_t i = range.begin_; i <= range.end_; i += range.step_) {
-                    ss << '\n' << std::to_string(i);
+                    out << '\n' << std::to_string(i);
                     for (auto &type : types) {
                         for (uint64_t fold = 0; fold < range.num_folds_; ++fold) {
-                            ss << ", " << std::fixed << bench.second(type.second, gen, i);
+                            out << ", " << std::fixed << bench.second(type.second, gen, i);
                         }
                     }
                 }
-                out << ss.rdbuf();
             }
         } catch (std::exception &ex) {
             std::lock_guard<std::mutex> lockGuard(stdout_mutex_);
@@ -134,7 +129,6 @@ public:
     void RunBenchmarks(const std::string &path, const Range &range,
                        BenchPredicate bench_predicate) {
         std::random_device device;
-        std::mt19937 gen(device());
         std::vector<std::thread> threads;
         for (auto &bench : benchmarks_) {
             if (bench_predicate(bench.first)) {
@@ -142,7 +136,7 @@ public:
                 cout << "Running " << bench.first << '\n';
                 stdout_mutex_.unlock();
                 threads.emplace_back(RunBench, std::ref(bench), std::ref(path), std::ref(range),
-                                     std::ref(types_), std::ref(gen));
+                                     std::ref(types_), std::mt19937(device()));
             }
         }
         for (auto &thread : threads) {
