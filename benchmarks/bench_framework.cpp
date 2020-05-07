@@ -34,6 +34,30 @@ public:
         benchmarks_.emplace("!_diverging_int_series_insert_bench", DivergingIntSeriesInsert);
         benchmarks_.emplace("!_random_sparse_int_series_insert_bench", RandomSparseIntSeriesInsert);
         benchmarks_.emplace("!_random_dense_int_series_insert_bench", RandomDenseIntSeriesInsert);
+        benchmarks_.emplace("!_increasing_int_series_erase_after_increasing_series_insert",
+                            IncreasingIntSeriesEraseAfterIncreasingSeriesInsert);
+        benchmarks_.emplace("!_decreasing_int_series_erase_after_increasing_series_insert",
+                            DecreasingIntSeriesEraseAfterIncreasingSeriesInsert);
+        benchmarks_.emplace("!_converging_int_series_erase_after_increasing_series_insert",
+                            ConvergingIntSeriesEraseAfterIncreasingSeriesInsert);
+        benchmarks_.emplace("!_diverging_int_series_erase_after_increasing_series_insert",
+                            DivergingIntSeriesEraseAfterIncreasingSeriesInsert);
+        benchmarks_.emplace("!_nonexistent_int_series_erase_after_increasing_series_insert",
+                            NonexistentIntSeriesEraseAfterIncreasingSeriesInsert);
+        benchmarks_.emplace("!_random_int_series_erase_after_increasing_series_insert",
+                            RandomIntSeriesEraseAfterIncreasingSeriesInsert);
+        benchmarks_.emplace("!_increasing_int_series_erase_after_random_sparse_series_insert",
+                            IncreasingIntSeriesEraseAfterRandomSparseSeriesInsert);
+        benchmarks_.emplace("!_decreasing_int_series_erase_after_random_sparse_series_insert",
+                            DecreasingIntSeriesEraseAfterRandomSparseSeriesInsert);
+        benchmarks_.emplace("!_converging_int_series_erase_after_random_sparse_series_insert",
+                            ConvergingIntSeriesEraseAfterRandomSparseSeriesInsert);
+        benchmarks_.emplace("!_diverging_int_series_erase_after_random_sparse_series_insert",
+                            DivergingIntSeriesEraseAfterRandomSparseSeriesInsert);
+        benchmarks_.emplace("!_nonexistent_int_series_erase_after_random_sparse_series_insert",
+                            NonexistentIntSeriesEraseAfterRandomSparseSeriesInsert);
+        benchmarks_.emplace("!_random_int_series_erase_after_random_sparse_series_insert",
+                            RandomIntSeriesEraseAfterRandomSparseSeriesInsert);
     }
 
     struct Range {
@@ -109,11 +133,11 @@ private:
             }
         } catch (std::exception &ex) {
             std::lock_guard<std::mutex> lockGuard(stdout_mutex_);
-            cout << bench.first << " failure: " << ex.what() << '\n';
+            cout << bench.first << "\tfailure: " << ex.what() << '\n';
         } catch (...) {
             std::lock_guard<std::mutex> lockGuard(stdout_mutex_);
             cout << bench.first
-                 << " failure: Unknown exception. PLEASE THROW \"std::exception\" BASED "
+                 << "\tfailure: Unknown exception. PLEASE THROW \"std::exception\" BASED "
                     "EXCEPTIONS\n";
         }
         out.close();
@@ -121,7 +145,7 @@ private:
         double time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
                       nanoMultiplier;
         std::lock_guard<std::mutex> lockGuard(stdout_mutex_);
-        cout << bench.first << ": OK. Time spent: " << time << "ms\n";
+        cout << bench.first << ":\tOK. Time spent: " << time << "ms\n";
     }
 
 public:

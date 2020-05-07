@@ -1,8 +1,9 @@
 #pragma once
-#include <vector>
+#include <algorithm>
+#include <chrono>
 #include <ostream>
 #include <random>
-#include <chrono>
+#include <vector>
 
 #include "../trees/abstract_tree.h"
 #include "../trees/avl_tree.h"
@@ -65,7 +66,7 @@ double ConvergingIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op_c
     auto begin = std::chrono::high_resolution_clock::now();
     for (uint64_t i = 0; i<op_count>> 1u; ++i) {
         tree->insert(i);
-        tree->insert(op_count - i);
+        tree->insert(op_count - i - 1);
     }
     auto end = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
@@ -77,7 +78,7 @@ double DivergingIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op_co
     auto begin = std::chrono::high_resolution_clock::now();
     for (uint64_t i = op_count >> 1u; i < op_count; ++i) {
         tree->insert(i);
-        tree->insert(op_count - i);
+        tree->insert(op_count - i - 1);
     }
     auto end = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
@@ -86,9 +87,9 @@ double DivergingIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op_co
 
 double RandomSparseIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op_count) {
     auto tree = MakeTree<int>(type);
-    auto begin = std::chrono::high_resolution_clock::now();
     std::uniform_int_distribution dist(std::numeric_limits<int>::min(),
                                        std::numeric_limits<int>::max());
+    auto begin = std::chrono::high_resolution_clock::now();
     for (uint64_t i = 0; i < op_count; ++i) {
         tree->insert(dist(gen));
     }
@@ -99,8 +100,8 @@ double RandomSparseIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op
 
 double RandomDenseIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op_count) {
     auto tree = MakeTree<int>(type);
-    auto begin = std::chrono::high_resolution_clock::now();
     std::uniform_int_distribution dist(0ul, op_count / 5);
+    auto begin = std::chrono::high_resolution_clock::now();
     for (uint64_t i = 0; i < op_count; ++i) {
         tree->insert(dist(gen));
     }
@@ -131,8 +132,193 @@ double DecreasingIntSeriesEraseAfterIncreasingSeriesInsert(ImplType type, std::m
         tree->insert(i);
     }
     auto begin = std::chrono::high_resolution_clock::now();
-    for (uint64_t i = op_count - 1; i >= 0; --i) {
+    for (uint64_t i = op_count - 1; i > 0; --i) {
         tree->erase(i);
+    }
+    tree->erase(0);
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double ConvergingIntSeriesEraseAfterIncreasingSeriesInsert(ImplType type, std::mt19937& gen,
+                                                           uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->insert(i);
+    }
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i<op_count>> 1u; ++i) {
+        tree->erase(i);
+        tree->erase(op_count - i - 1);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double DivergingIntSeriesEraseAfterIncreasingSeriesInsert(ImplType type, std::mt19937& gen,
+                                                          uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->insert(i);
+    }
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = op_count >> 1u; i < op_count; ++i) {
+        tree->erase(i);
+        tree->erase(op_count - i - 1);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double NonexistentIntSeriesEraseAfterIncreasingSeriesInsert(ImplType type, std::mt19937& gen,
+                                                            uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    for (uint64_t i = 0; i < op_count << 1u; i += 2) {
+        tree->insert(i);
+    }
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 1; i < op_count << 1u; i += 2) {
+        tree->erase(i);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double RandomIntSeriesEraseAfterIncreasingSeriesInsert(ImplType type, std::mt19937& gen,
+                                                       uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    std::vector<int> elements;
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->insert(i);
+        elements.emplace_back(i);
+    }
+    std::shuffle(elements.begin(), elements.end(), gen);
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->erase(elements[i]);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double IncreasingIntSeriesEraseAfterRandomSparseSeriesInsert(ImplType type, std::mt19937& gen,
+                                                             uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    std::uniform_int_distribution dist(std::numeric_limits<int>::min(),
+                                       std::numeric_limits<int>::max());
+    std::vector<int> elements;
+    for (uint64_t i = 0; i < op_count; ++i) {
+        elements.emplace_back(dist(gen));
+        tree->insert(elements.back());
+    }
+    std::sort(elements.begin(), elements.end());
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->erase(elements[i]);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double DecreasingIntSeriesEraseAfterRandomSparseSeriesInsert(ImplType type, std::mt19937& gen,
+                                                             uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    std::uniform_int_distribution dist(std::numeric_limits<int>::min(),
+                                       std::numeric_limits<int>::max());
+    std::vector<int> elements;
+    for (uint64_t i = 0; i < op_count; ++i) {
+        elements.emplace_back(dist(gen));
+        tree->insert(elements.back());
+    }
+    std::sort(elements.rbegin(), elements.rend());
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->erase(elements[i]);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double ConvergingIntSeriesEraseAfterRandomSparseSeriesInsert(ImplType type, std::mt19937& gen,
+                                                             uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    std::uniform_int_distribution dist(std::numeric_limits<int>::min(),
+                                       std::numeric_limits<int>::max());
+    std::vector<int> elements;
+    for (uint64_t i = 0; i < op_count; ++i) {
+        elements.emplace_back(dist(gen));
+        tree->insert(elements.back());
+    }
+    std::sort(elements.begin(), elements.end());
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i<op_count>> 1u; ++i) {
+        tree->erase(elements[i]);
+        tree->erase(elements[op_count - i - 1]);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double DivergingIntSeriesEraseAfterRandomSparseSeriesInsert(ImplType type, std::mt19937& gen,
+                                                            uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    std::uniform_int_distribution dist(std::numeric_limits<int>::min(),
+                                       std::numeric_limits<int>::max());
+    std::vector<int> elements;
+    for (uint64_t i = 0; i < op_count; ++i) {
+        elements.emplace_back(dist(gen));
+        tree->insert(elements.back());
+    }
+    std::sort(elements.begin(), elements.end());
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = op_count >> 1u; i < op_count; ++i) {
+        tree->erase(elements[i]);
+        tree->erase(elements[op_count - i - 1]);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double NonexistentIntSeriesEraseAfterRandomSparseSeriesInsert(ImplType type, std::mt19937& gen,
+                                                              uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    std::uniform_int_distribution dist(std::numeric_limits<int>::min(),
+                                       std::numeric_limits<int>::max());
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->insert(dist(gen));
+    }
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->erase(dist(gen));
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
+           nanoMultiplier;
+}
+
+double RandomIntSeriesEraseAfterRandomSparseSeriesInsert(ImplType type, std::mt19937& gen,
+                                                         uint64_t op_count) {
+    auto tree = MakeTree<int>(type);
+    std::uniform_int_distribution dist(std::numeric_limits<int>::min(),
+                                       std::numeric_limits<int>::max());
+    std::vector<int> elements;
+    for (uint64_t i = 0; i < op_count; ++i) {
+        elements.emplace_back(dist(gen));
+        tree->insert(elements.back());
+    }
+    std::shuffle(elements.begin(), elements.end(), gen);
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (uint64_t i = 0; i < op_count; ++i) {
+        tree->erase(elements[i]);
     }
     auto end = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() *
