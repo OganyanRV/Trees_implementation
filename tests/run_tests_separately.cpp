@@ -2,6 +2,11 @@
 
 #include "test_framework.cpp"
 
+/**
+ * All functions below are same
+ *
+ * Runs all tests for chosen structure
+ */
 TEST_CASE("Test AVL") {
     TestFramework framework;
     framework.RunAll(Substr("AVL"));
@@ -25,9 +30,4 @@ TEST_CASE("Test Skip list") {
 TEST_CASE("Test Splay") {
     TestFramework framework;
     framework.RunAll(Substr("Splay"));
-}
-
-TEST_CASE("Test set") {
-    TestFramework framework;
-    framework.RunAll(Substr("set"));
 }

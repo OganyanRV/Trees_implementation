@@ -7,8 +7,6 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-include(cmake/BuildFlags.cmake)
-
 set(TREES trees/abstract_tree.h
         trees/avl_tree.h
         trees/cartesian_tree.h

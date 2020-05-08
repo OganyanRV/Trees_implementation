@@ -11,6 +11,9 @@
 
 using std::cout;
 
+/**
+ * Framework for testing ITree based structures
+ */
 class TestFramework {
 public:
     TestFramework() {
@@ -19,18 +22,17 @@ public:
 #else
         cout << "Test framework started at debug build\n\n";
 #endif
-        // All types of trees are listed below.
+        /// All types of trees are listed below.
         types_.emplace("AVL tree", ImplType::kAVL);
         types_.emplace("Cartesian tree", ImplType::kCartesian);
         types_.emplace("Red-Black tree", ImplType::kRB);
         types_.emplace("Skip list", ImplType::kSkipList);
         types_.emplace("Splay tree", ImplType::kSplay);
-        types_.emplace("Stdlib set", ImplType::kSet);
 
-        /* All tests are listed below.
-         * We'll use '!' for good tests that we are sure of,
-         * '%' for useless and demonstrative tests.
-         * You can also use your own symbol for your tests.
+        /**
+         * All tests are listed below.
+         * We use '!' for useful and essential tests,
+         * '%' for simple and demonstrative tests.
          */
         tests_.emplace("%_simple_test", SomeTest);
         tests_.emplace("%_rb_only_black_height_test", RBBlackHeightTest);
@@ -46,6 +48,12 @@ public:
         tests_.emplace("!_insert_and_erase_test", InsertAndEraseTest);
     }
 
+    /**
+     * This function runs given test with tree types satisfying @param tree_predicate
+     * @tparam TreePredicate Tree predicate functor type
+     * @param test_name Name of the test to run
+     * @param tree_predicate Functor for choosing trees
+     */
     template <class TreePredicate>
     void RunTest(const std::string &test_name, TreePredicate tree_predicate) {
         auto it = tests_.find(test_name);
@@ -68,10 +76,22 @@ public:
         }
     }
 
+    /**
+     * This function generalizes 'RunTest()' to use all available trees
+     * @param test_name Name of the test to run
+     */
     void RunTestForAll(const std::string &test_name) {
         RunTest(test_name, Every());
     }
 
+    /**
+     * This function runs tests satisfying @param test_predicate
+     * with tree types satisfying @param tree_predicate
+     * @tparam TestPredicate Test predicate functor type
+     * @tparam TreePredicate Tree predicate functor type
+     * @param test_predicate Functor for choosing tests
+     * @param tree_predicate Functor for choosing trees
+     */
     template <class TestPredicate, class TreePredicate>
     void RunTests(TestPredicate test_predicate, TreePredicate tree_predicate) {
         std::unordered_map<std::string, ImplType> trees_for_tests;
@@ -100,20 +120,40 @@ public:
         }
     }
 
+    /**
+     * This function generalizes 'RunTests()' to use all available trees
+     * @tparam TestPredicate Test predicate functor type
+     * @param test_predicate Functor for choosing tests
+     */
     template <class TestPredicate>
     void RunTestsForAll(TestPredicate test_predicate) {
         RunTests(test_predicate, Every());
     }
 
+    /**
+     * This function generalizes 'RunTests()' to check all available tests
+     * @tparam TreePredicate Tree predicate functor type
+     * @param tree_predicate Functor for choosing trees
+     */
     template <class TreePredicate>
     void RunAll(TreePredicate tree_predicate) {
         RunTests(Every(), tree_predicate);
     }
 
+    /**
+     * This function generalizes 'RunTests()' to check all available tests
+     * on all available trees
+     */
     void RunAllForAll() {
         RunTests(Every(), Every());
     }
 
+    /**
+     * This function returns a 'std::vector' of tests satisfying @param test_predicate
+     * @tparam TestPredicate Test predicate functor type
+     * @param test_predicate Functor for choosing tests
+     * @return 'std::vector' of test names satisfying @param test_predicate
+     */
     template <class TestPredicate>
     std::vector<std::string> ShowTests(TestPredicate test_predicate) const {
         std::vector<std::string> result;
@@ -126,6 +166,10 @@ public:
         return result;
     }
 
+    /**
+     * This function returns all available tests
+     * @return 'std::vector' of all available test names
+     */
     [[nodiscard]] std::vector<std::string> ShowAllTests() const {
         std::vector<std::string> result;
         for (const auto &test : tests_) {
@@ -136,22 +180,40 @@ public:
     }
 
 private:
+    /// Types of trees (name + type)
     std::map<std::string, ImplType> types_;
+    /// Tests (name + function)
     std::map<std::string, std::function<void(ImplType)>> tests_;
 
+    /// Functor for every object in a list
     class Every {
     public:
+        /**
+         * Functor, which always returns true
+         * @param arg String to compare with
+         * @return True
+         */
         bool operator()(const std::string &arg) {
             return true;
         }
     };
 };
 
+/// Functor for objects, which has a substring in their name matching to @param str_
 class Substr {
 public:
+    /**
+     * Constructor for the functor
+     * @param str Substring, which we are going to find
+     */
     explicit Substr(const char *str) : str_(str) {
     }
 
+    /**
+     * Functor
+     * @param arg String to compare with
+     * @return True if 'str_' is contained in @param arg
+     */
     bool operator()(const std::string &arg) {
         return arg.find(str_) != std::string::npos;
     }
@@ -160,11 +222,21 @@ private:
     std::string str_;
 };
 
+/// Functor for objects, which name matches to the given string
 class FullMatch {
 public:
+    /**
+     * Constructor for the functor
+     * @param str String, which we are going to compare with
+     */
     explicit FullMatch(const char *str) : str_(str) {
     }
 
+    /**
+     * Functor
+     * @param arg String to compare with
+     * @return True if 'str_' is matched with @param arg
+     */
     bool operator()(const std::string &arg) {
         return arg == str_;
     }

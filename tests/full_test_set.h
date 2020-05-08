@@ -15,18 +15,18 @@
 #include "../trees/splay_tree.h"
 #include "../trees/stdlib_set.h"
 
-// #define RELEASE_BUILD
+#define RELEASE_BUILD
 
-/* Here we're going to write tests for our trees.
- * To add a test you are to write it as a function (e. g. SomeTest())
- * Then you are to add it to TestFramework default constructor.
- * Don't forget to name your test!
- */
-
+/// All types of trees
 enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay, kSet };
 
-/* This function returns a new tree of given type 'type'
- * as a shared pointer to base class.
+/**
+ * Makes a tree of given type and returns a shared pointer on it
+ * @tparam T Tree value type
+ * @tparam Types Types of constructor parameters
+ * @param type Type of tree to make
+ * @param params Parameters for tree constructor
+ * @return Shared pointer on a new tree
  */
 template <class T, class... Types>
 std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
@@ -47,9 +47,14 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     }
 }
 
-/* This function returns a copy of given tree (rhs) of type 'type'
- * as a shared pointer to base class (lhs).
- * It uses copy assignment operator.
+/**
+ * Replacement for ITree operator=(const ITree& other)
+ *
+ * Makes a copy of given in @param rhs tree and assigns it to @param lhs
+ * @tparam T Tree value type
+ * @param type Type of tree to copy
+ * @param lhs Used to return a copy
+ * @param rhs Given tree
  */
 template <class T>
 void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
@@ -71,6 +76,13 @@ void MakeCopyAssignment(ImplType type, std::shared_ptr<ITree<T>>& lhs,
     }
 }
 
+/**
+ * Checks if std::set<T> and ITree<T> had the same elements
+ * @tparam T Tree value type
+ * @param set Std::set for comparison
+ * @param tree ITree object for comparison
+ * @return True if elements in both structures are same
+ */
 template <class T>
 bool operator==(std::set<T> set, std::shared_ptr<ITree<T>> tree) {
     if (set.size() != tree->size()) {
@@ -88,6 +100,13 @@ bool operator==(std::set<T> set, std::shared_ptr<ITree<T>> tree) {
     return true;
 }
 
+/**
+ * Checks if std::set<T> and ITree<T> gave the same answers on find() and lower_bound() queries.
+ * @tparam T Tree value type
+ * @param set Std::set for comparison
+ * @param tree ITree object for comparison
+ * @param value Value for find() and lower_bound() queries
+ */
 template <class T>
 void CheckFindAndLB(const std::set<T>& set, std::shared_ptr<ITree<T>> tree, const T& value) {
     auto set_it = set.find(value);
@@ -132,8 +151,19 @@ void CheckFindAndLB(const std::set<T>& set, std::shared_ptr<ITree<T>> tree, cons
     }
 }
 
+/**
+ * Random number generator functor.
+ * Uses singleton pattern.
+ */
 class Random {
 public:
+    /**
+     * Generates random number in the interval [from, to]
+     * @tparam T Integral type parameter
+     * @param from Start of the interval
+     * @param to End of the interval
+     * @return Number in the interval [from, to]
+     */
     template <class T>
     static uint32_t Next(const T& from, const T& to) {
         static Random rand = Random();
@@ -142,13 +172,16 @@ public:
     }
 
 private:
+    /**
+     * If the build is DEBUG, it generates a predictable identical sequence.
+     */
     Random() {
 #ifdef RELEASE_BUILD
-        // GOOD INIT
+        /// GOOD INIT
         std::random_device device;
         gen_ = std::mt19937(device());
 #else
-        // BAD INIT
+        /// BAD INIT
         gen_ = std::mt19937(0u);
 #endif
     }
@@ -156,6 +189,12 @@ private:
     std::mt19937 gen_;
 };
 
+/**
+ * All functions below are same
+ *
+ * Test
+ * @param type Type of tree to check
+ */
 void SomeTest(ImplType type) {
     auto tree = MakeTree<int>(type);
     tree->insert(1);
@@ -368,6 +407,12 @@ void FewElementsCopyingTest(ImplType type) {
     }
 }
 
+
+/**
+ * @class for testing.
+ * It helps to check if the memory is released properly after removing each object.
+ * It also has only `less` operator for comparison.
+ */
 class StrangeInt {
 public:
     static int counter;
@@ -396,12 +441,6 @@ public:
     ~StrangeInt() {
         --counter;
     }
-
-    friend std::ostream& operator<<(std::ostream& out, const StrangeInt& value) {
-        out << value.value_;
-        return out;
-    }
-
 private:
     int value_;
 };

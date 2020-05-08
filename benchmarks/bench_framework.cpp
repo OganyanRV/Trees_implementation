@@ -10,12 +10,17 @@
 #include "benchmarks.h"
 
 using std::cout;
+
+/// stdout access blocking
 std::mutex stdout_mutex_;
 
+/**
+ * Framework for speed testing ITree based structures
+ */
 class BenchFramework {
 public:
     BenchFramework() {
-        // All types of trees are listed below.
+        /// All types of trees are listed below.
         types_.emplace("AVL_tree", ImplType::kAVL);
         types_.emplace("Cartesian_tree", ImplType::kCartesian);
         types_.emplace("Red-Black_tree", ImplType::kRB);
@@ -23,10 +28,9 @@ public:
         types_.emplace("Splay_tree", ImplType::kSplay);
         types_.emplace("Stdlib_set", ImplType::kSet);
 
-        /* All benchmarks are listed below.
-         * We'll use '!' for good benchmarks that we need,
-         * '%' for useless and demonstrative benchmarks.
-         * You can also use your own symbol for your benchmarks.
+        /**
+         * All benchmarks are listed below.
+         * To determine it's ours, we put '!' in the beginning
          */
         benchmarks_.emplace("!_increasing_int_series_insert_bench", IncreasingIntSeriesInsert);
         benchmarks_.emplace("!_decreasing_int_series_insert_bench", DecreasingIntSeriesInsert);
@@ -80,6 +84,13 @@ public:
                             LowerBoundRandomSparseIntAfterRandomSparseInsert);
     }
 
+    /**
+     * This structure specifies how to test our trees
+     * begin and end are the boundaries of the value interval
+     * if log_scale is set, then step specifies how many values (in log scale) will be tested
+     * if not, then step is just step, which is added to the current value
+     * num_folds specifies the number of identical tests for averaging
+     */
     struct Range {
         Range() = delete;
         Range(uint64_t begin, uint64_t end, uint64_t step = 1, bool log_scale = false,
@@ -99,6 +110,15 @@ public:
     };
 
 private:
+    /**
+     * This function runs given bench with given range and tree types
+     * Results are written to the file, the name of which matches the name of the bench
+     * @param bench Benchmark to run
+     * @param path Path to the results folder
+     * @param range Range for benchmarking
+     * @param types Tree types for benchmarking
+     * @param gen Mersenne Twister generator
+     */
     static void RunBench(
         std::pair<const std::string, std::function<double(ImplType, std::mt19937 &, uint64_t)>>
             &bench,
@@ -169,6 +189,15 @@ private:
     }
 
 public:
+    /**
+     * This function runs all benchmarks, which satisfy the given predicate.
+     * It takes common range and path to the folder with results.
+     * The number of used threads always doesn't exceed 4.
+     * @tparam BenchPredicate Template parameter functor
+     * @param path Path to the results folder
+     * @param range Range for benchmarking
+     * @param bench_predicate Functor for benchmarking
+     */
     template <class BenchPredicate>
     void RunBenchmarks(const std::string &path, const Range &range,
                        BenchPredicate bench_predicate) {
@@ -203,27 +232,50 @@ public:
         }
     }
 
+    /**
+     * This function generalizes 'RunBenchmarks()' to use all available benchmarks
+     * @param path Path to the results folder
+     * @param range Range for benchmarking
+     */
     void RunAllBenchmarks(const std::string &path, const Range &range) {
         RunBenchmarks(path, range, Every());
     }
 
 private:
+    /// Types of trees (name + type)
     std::map<std::string, ImplType> types_;
+    /// Benchmarks (name + function)
     std::map<std::string, std::function<double(ImplType, std::mt19937 &, uint64_t)>> benchmarks_;
 
+    /// Functor for every object in a list
     class Every {
     public:
+        /**
+         * Functor, which always returns true
+         * @param arg String to compare with
+         * @return True
+         */
         bool operator()(const std::string &arg) {
             return true;
         }
     };
 };
 
+/// Functor for objects, which has a substring in their name matching to @param str_
 class Substr {
 public:
+    /**
+     * Constructor for the functor
+     * @param str Substring, which we are going to find
+     */
     explicit Substr(const char *str) : str_(str) {
     }
 
+    /**
+     * Functor
+     * @param arg String to compare with
+     * @return True if 'str_' is contained in @param arg
+     */
     bool operator()(const std::string &arg) {
         return arg.find(str_) != std::string::npos;
     }
@@ -232,11 +284,21 @@ private:
     std::string str_;
 };
 
+/// Functor for objects, which name matches to the given string
 class FullMatch {
 public:
+    /**
+     * Constructor for the functor
+     * @param str String, which we are going to compare with
+     */
     explicit FullMatch(const char *str) : str_(str) {
     }
 
+    /**
+     * Functor
+     * @param arg String to compare with
+     * @return true if 'str_' is matched with @param arg
+     */
     bool operator()(const std::string &arg) {
         return arg == str_;
     }

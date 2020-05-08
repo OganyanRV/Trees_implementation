@@ -14,12 +14,19 @@
 #include "../trees/splay_tree.h"
 #include "../trees/stdlib_set.h"
 
+/// Nanoseconds to milliseconds
 #define nanoMultiplier 1e-6
 
+/// All types of trees
 enum class ImplType { kAVL, kCartesian, kRB, kSkipList, kSplay, kSet };
 
-/* This function returns a new tree of given type 'type'
- * as a shared pointer to base class.
+/**
+ * Makes a tree of given type and returns a shared pointer on it
+ * @tparam T Tree value type
+ * @tparam Types Types of constructor parameters
+ * @param type Type of tree to make
+ * @param params Parameters for tree constructor
+ * @return shared pointer on a new tree
  */
 template <class T, class... Types>
 std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
@@ -40,6 +47,15 @@ std::shared_ptr<ITree<T>> MakeTree(ImplType type, Types... params) {
     }
 }
 
+/**
+ * All functions below are same
+ *
+ * Benchmark
+ * @param type Type of tree to check
+ * @param gen Mersenne Twister generator
+ * @param op_count Number of operations to do
+ * @return Operating time in milliseconds
+ */
 double IncreasingIntSeriesInsert(ImplType type, std::mt19937& gen, uint64_t op_count) {
     auto tree = MakeTree<int>(type);
     auto begin = std::chrono::high_resolution_clock::now();
