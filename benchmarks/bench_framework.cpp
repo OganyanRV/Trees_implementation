@@ -111,7 +111,7 @@ public:
 
 private:
     /**
-     * This function runs given bench with given range and tree types
+     * This function runs given benchmark with given range and tree types
      * Results are written to the file, the name of which matches the name of the bench
      * @param bench Benchmark to run
      * @param path Path to the results folder
@@ -192,19 +192,23 @@ public:
     /**
      * This function runs all benchmarks, which satisfy the given predicate.
      * It takes common range and path to the folder with results.
-     * The number of used threads always doesn't exceed 4.
      * @tparam BenchPredicate Template parameter functor
      * @param path Path to the results folder
      * @param range Range for benchmarking
      * @param bench_predicate Functor for benchmarking
+     * @param max_thread_count Maximum number of threads running at the same time
      */
     template <class BenchPredicate>
     void RunBenchmarks(const std::string &path, const Range &range,
-                       BenchPredicate bench_predicate) {
+                       BenchPredicate bench_predicate, uint64_t max_thread_count) {
+        if(max_thread_count < 1){
+            cout << "Wrong thread number\n";
+            return;
+        }
         std::random_device device;
         std::queue<std::thread> threads;
         auto it = benchmarks_.begin();
-        while (it != benchmarks_.end() && threads.size() < 3) {
+        while (it != benchmarks_.end() && threads.size() < max_thread_count - 1) {
             if (bench_predicate(it->first)) {
                 stdout_mutex_.lock();
                 cout << "Running " << it->first << '\n';
@@ -236,9 +240,10 @@ public:
      * This function generalizes 'RunBenchmarks()' to use all available benchmarks
      * @param path Path to the results folder
      * @param range Range for benchmarking
+     * @param max_thread_count Maximum number of threads running at the same time
      */
-    void RunAllBenchmarks(const std::string &path, const Range &range) {
-        RunBenchmarks(path, range, Every());
+    void RunAllBenchmarks(const std::string &path, const Range &range, uint64_t max_thread_count) {
+        RunBenchmarks(path, range, Every(), max_thread_count);
     }
 
 private:
