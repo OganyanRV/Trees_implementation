@@ -1,8 +1,8 @@
 #include <functional>
 #include <iostream>
-#include <fstream>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <thread>
 #include <vector>
@@ -34,30 +34,50 @@ public:
         benchmarks_.emplace("!_diverging_int_series_insert_bench", DivergingIntSeriesInsert);
         benchmarks_.emplace("!_random_sparse_int_series_insert_bench", RandomSparseIntSeriesInsert);
         benchmarks_.emplace("!_random_dense_int_series_insert_bench", RandomDenseIntSeriesInsert);
-        benchmarks_.emplace("!_increasing_int_series_erase_after_increasing_series_insert",
+        benchmarks_.emplace("!_random_sparse_strings_insert_bench", RandomSparseStringsInsert);
+        benchmarks_.emplace("!_random_dense_strings_insert_bench", RandomDenseStringsInsert);
+
+        benchmarks_.emplace("!_increasing_int_series_erase_after_increasing_series_insert_bench",
                             IncreasingIntSeriesEraseAfterIncreasingSeriesInsert);
-        benchmarks_.emplace("!_decreasing_int_series_erase_after_increasing_series_insert",
+        benchmarks_.emplace("!_decreasing_int_series_erase_after_increasing_series_insert_bench",
                             DecreasingIntSeriesEraseAfterIncreasingSeriesInsert);
-        benchmarks_.emplace("!_converging_int_series_erase_after_increasing_series_insert",
+        benchmarks_.emplace("!_converging_int_series_erase_after_increasing_series_insert_bench",
                             ConvergingIntSeriesEraseAfterIncreasingSeriesInsert);
-        benchmarks_.emplace("!_diverging_int_series_erase_after_increasing_series_insert",
+        benchmarks_.emplace("!_diverging_int_series_erase_after_increasing_series_insert_bench",
                             DivergingIntSeriesEraseAfterIncreasingSeriesInsert);
-        benchmarks_.emplace("!_nonexistent_int_series_erase_after_increasing_series_insert",
+        benchmarks_.emplace("!_nonexistent_int_series_erase_after_increasing_series_insert_bench",
                             NonexistentIntSeriesEraseAfterIncreasingSeriesInsert);
-        benchmarks_.emplace("!_random_int_series_erase_after_increasing_series_insert",
+        benchmarks_.emplace("!_random_int_series_erase_after_increasing_series_insert_bench",
                             RandomIntSeriesEraseAfterIncreasingSeriesInsert);
-        benchmarks_.emplace("!_increasing_int_series_erase_after_random_sparse_series_insert",
+
+        benchmarks_.emplace("!_increasing_int_series_erase_after_random_sparse_series_insert_bench",
                             IncreasingIntSeriesEraseAfterRandomSparseSeriesInsert);
-        benchmarks_.emplace("!_decreasing_int_series_erase_after_random_sparse_series_insert",
+        benchmarks_.emplace("!_decreasing_int_series_erase_after_random_sparse_series_insert_bench",
                             DecreasingIntSeriesEraseAfterRandomSparseSeriesInsert);
-        benchmarks_.emplace("!_converging_int_series_erase_after_random_sparse_series_insert",
+        benchmarks_.emplace("!_converging_int_series_erase_after_random_sparse_series_insert_bench",
                             ConvergingIntSeriesEraseAfterRandomSparseSeriesInsert);
-        benchmarks_.emplace("!_diverging_int_series_erase_after_random_sparse_series_insert",
+        benchmarks_.emplace("!_diverging_int_series_erase_after_random_sparse_series_insert_bench",
                             DivergingIntSeriesEraseAfterRandomSparseSeriesInsert);
-        benchmarks_.emplace("!_nonexistent_int_series_erase_after_random_sparse_series_insert",
-                            NonexistentIntSeriesEraseAfterRandomSparseSeriesInsert);
-        benchmarks_.emplace("!_random_int_series_erase_after_random_sparse_series_insert",
+        benchmarks_.emplace(
+            "!_nonexistent_int_series_erase_after_random_sparse_series_insert_bench",
+            NonexistentIntSeriesEraseAfterRandomSparseSeriesInsert);
+        benchmarks_.emplace("!_random_int_series_erase_after_random_sparse_series_insert_bench",
                             RandomIntSeriesEraseAfterRandomSparseSeriesInsert);
+
+        benchmarks_.emplace("!_random_strings_erase_after_random_insert_bench",
+                            RandomStringsEraseAfterRandomInsert);
+        benchmarks_.emplace("!_nonexistent_strings_erase_after_random_insert_bench",
+                            NonexistentStringsEraseAfterRandomInsert);
+
+        benchmarks_.emplace("!_random_insert_and_erase_int_alternation_bench",
+                            RandomInsertAndEraseIntAlternation);
+
+        benchmarks_.emplace("!_find_int_after_random_sparse_insert_bench",
+                            FindIntAfterRandomSparseInsert);
+        benchmarks_.emplace("!_find_random_sparse_int_after_random_sparse_insert_bench",
+                            FindRandomSparseIntAfterRandomSparseInsert);
+        benchmarks_.emplace("!_lower_bound_random_sparse_int_after_random_sparse_insert_bench",
+                            LowerBoundRandomSparseIntAfterRandomSparseInsert);
     }
 
     struct Range {
@@ -153,18 +173,33 @@ public:
     void RunBenchmarks(const std::string &path, const Range &range,
                        BenchPredicate bench_predicate) {
         std::random_device device;
-        std::vector<std::thread> threads;
-        for (auto &bench : benchmarks_) {
-            if (bench_predicate(bench.first)) {
+        std::queue<std::thread> threads;
+        auto it = benchmarks_.begin();
+        while (it != benchmarks_.end() && threads.size() < 3) {
+            if (bench_predicate(it->first)) {
                 stdout_mutex_.lock();
-                cout << "Running " << bench.first << '\n';
+                cout << "Running " << it->first << '\n';
                 stdout_mutex_.unlock();
-                threads.emplace_back(RunBench, std::ref(bench), std::ref(path), std::ref(range),
-                                     std::ref(types_), std::mt19937(device()));
+                threads.emplace(RunBench, std::ref(*it), std::ref(path), std::ref(range),
+                                std::ref(types_), std::mt19937(device()));
+                ++it;
             }
         }
-        for (auto &thread : threads) {
-            thread.join();
+        while (it != benchmarks_.end()) {
+            if (bench_predicate(it->first)) {
+                stdout_mutex_.lock();
+                cout << "Running " << it->first << '\n';
+                stdout_mutex_.unlock();
+                threads.emplace(RunBench, std::ref(*it), std::ref(path), std::ref(range),
+                                std::ref(types_), std::mt19937(device()));
+                ++it;
+                threads.front().join();
+                threads.pop();
+            }
+        }
+        while (!threads.empty()) {
+            threads.front().join();
+            threads.pop();
         }
     }
 
